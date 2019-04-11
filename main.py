@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 ######################################################
-#             2D Heat Conduction Solver              #
+#             1D Heat Conduction Solver              #
 #              Created by J. Mark Epps               #
 #          Part of Masters Thesis at UW 2018-2020    #
 ######################################################
 
-This file contains the main executable script for solving 2D conduction:
+This file contains the main executable script for solving 1D conduction:
     -Uses FileClasses.py to read and write input files to get settings for solver
     and geometry
     -Creates a domain class from GeomClasses.py
@@ -16,7 +16,7 @@ This file contains the main executable script for solving 2D conduction:
     -Calculates the time taken to run solver
     -Changes boundary conditions based on ignition criteria
     -Saves temperature data (.npy) at intervals defined in input file
-    -Saves x,y meshgrid arrays (.npy) to output directory
+    -Saves x grid array (.npy) to output directory
 
 Features:
     -Ignition condition met, will change north BC to that of right BC
@@ -51,7 +51,7 @@ def save_data(Domain, Sources, Species, time):
             np.save('m_'+i+'_'+time, Domain.m_species[i], False)
 
 print('######################################################')
-print('#             2D Heat Conduction Solver              #')
+print('#             1D Heat Conduction Solver              #')
 print('#              Created by J. Mark Epps               #')
 print('#          Part of Masters Thesis at UW 2018-2020    #')
 print('######################################################\n')
@@ -94,11 +94,7 @@ print '################################'
 
 
 print 'Initializing geometry package...'
-if settings['Domain']=='Planar':
-    domain=Geom.TwoDimPlanar(settings, Species, 'Solid')
-elif settings['Domain']=='Axisymmetric':
-    domain=Geom.AxisymDomain(settings, Species, 'Solid')
-
+domain=Geom.OneDimLine(settings, Species, 'Solid')
 domain.mesh()
 print '################################'
 
@@ -107,10 +103,7 @@ print '################################'
 ##########################################################################
 
 print 'Initializing solver package...'
-if settings['Domain']=='Planar':
-    solver=Solvers.TwoDimPlanarSolve(domain, settings, Sources, BCs, 'Solid')
-elif settings['Domain']=='Axisymmetric':
-    solver=Solvers.AxisymmetricSolve(domain, settings, Sources, BCs, 'Solid')
+solver=Solvers.OneDimLineSolve(domain, settings, Sources, BCs, 'Solid')
 print '################################'
 
 print 'Initializing domain...'
@@ -144,17 +137,14 @@ if type(settings['Restart']) is int:
 
 k,rho,Cv,D=domain.calcProp()
 vol=domain.CV_vol()
-Ax,Ay=domain.CV_area()
-domain.E[:,:]=rho*vol*Cv*T
+domain.E[:]=rho*vol*Cv*T
 del k,rho,Cv,D,T
 if (bool(domain.m_species)) and (type(settings['Restart']) is str):
     for i in range(len(Species['Species'])):
-#        domain.m_species[Species['Species'][i]][:,:]=Species['Specie_IC'][i]
-        domain.m_species[Species['Species'][i]][:,:]=Species['Specie_IC'][i]
-        domain.m_species[Species['Species'][i]][:,0] *=0.5
-        domain.m_species[Species['Species'][i]][:,-1]*=0.5
-        domain.m_species[Species['Species'][i]][0,:] *=0.5
-        domain.m_species[Species['Species'][i]][-1,:]*=0.5
+#        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+        domain.m_species[Species['Species'][i]][0] *=0.5
+        domain.m_species[Species['Species'][i]][-1]*=0.5
         domain.m_0+=domain.m_species[Species['Species'][i]] 
 print '################################'
 ##########################################################################
@@ -176,7 +166,6 @@ print '################################\n'
 print 'Saving data to numpy array files...'
 save_data(domain, Sources, Species, time_max)
 np.save('X', domain.X, False)
-np.save('Y', domain.Y, False)
 
 ##########################################################################
 # -------------------------------------Solve
@@ -206,8 +195,8 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
     T_0=domain.TempFromConserv()
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
 #        v_0=np.sum(domain.eta[:,int(len(domain.eta[0,:])/2)]*domain.dy)
-        v_0=np.sum(domain.eta*solver.dy)/len(domain.eta[0,:])
-    err,dt=solver.Advance_Soln_Cond(nt, t, vol, Ax, Ay)
+        v_0=np.sum(domain.eta*solver.dx)
+    err,dt=solver.Advance_Soln_Cond(nt, t, vol)
     t+=dt
     nt+=1
     if err>0:
@@ -254,7 +243,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
     # Second point in calculating combustion propagation speed
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
 #        v_1=np.sum(domain.eta[:,int(len(domain.eta[0,:])/2)]*domain.dy)
-        v_1=np.sum(domain.eta*solver.dy)/len(domain.eta[0,:])
+        v_1=np.sum(domain.eta*solver.dx)
         if (v_1-v_0)/dt>0.001:
             v+=(v_1-v_0)/dt
             N+=1

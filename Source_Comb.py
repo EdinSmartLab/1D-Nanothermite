@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ######################################################
-#             2D Heat Conduction Solver              #
+#             1D Heat Conduction Solver              #
 #              Created by J. Mark Epps               #
 #          Part of Masters Thesis at UW 2018-2020    #
 ######################################################

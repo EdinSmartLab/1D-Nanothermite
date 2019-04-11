@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ######################################################
-#             2D Heat Conduction Solver              #
+#             1D Heat Conduction Solver              #
 #              Created by J. Mark Epps               #
 #          Part of Masters Thesis at UW 2018-2020    #
 ######################################################
@@ -15,8 +15,8 @@ This file contains classes for reading and writing files in proper format:
 
 # Dictionaries containing expected input file data; organized by type
 
-keys_Settings=['Domain','Length','Width','Nodes_x','Nodes_y','k','Cp','rho',\
-               'bias_type_x','bias_size_x','bias_type_y','bias_size_y']
+keys_Settings=['Length','Nodes_x','k','Cp','rho',\
+               'bias_type_x','bias_size_x']
                
 keys_Sources=['Source_Uniform','Source_Kim','Ea','A0','dH', 'Ignition']
 
@@ -25,10 +25,10 @@ keys_Species=['Species','Specie_rho','Specie_IC','Specie_Cp']
 keys_Time_adv=['Fo','dt','total_time_steps', 'total_time','Restart',\
                'Time_Scheme','Convergence','Max_iterations','Number_Data_Output']
 
-keys_BCs=     ['bc_left_E','bc_right_E','bc_south_E','bc_north_E',\
-              'bc_left_rad','bc_right_rad','bc_south_rad','bc_north_rad',\
-              'bc_left_P','bc_right_P','bc_north_P','bc_south_P',\
-              'bc_left_mass','bc_right_mass','bc_north_mass','bc_south_mass']
+keys_BCs=     ['bc_left_E','bc_right_E',\
+              'bc_left_rad','bc_right_rad']#,\
+#              'bc_left_P','bc_right_P',\
+#              'bc_left_mass','bc_right_mass']
 
 
 newline_check='\n' # This should be \n for Windows, \r for Ubuntu
@@ -52,7 +52,7 @@ class FileOut():
     # Header with information about file
     def header_cond(self, title='Run'):
         self.Write_single_line('######################################################')
-        self.Write_single_line('#             2D Heat Conduction Solver              #')
+        self.Write_single_line('#             1D Heat Conduction Solver              #')
         self.Write_single_line('#              Created by J. Mark Epps               #')
         self.Write_single_line('#          Part of Masters Thesis at UW 2018-2020    #')
         self.Write_single_line('######################################################\n')
@@ -61,7 +61,7 @@ class FileOut():
     
     def input_writer_cond(self, settings, Sources, Species, BCs):
         self.Write_single_line('Settings:')
-        keys=['Domain','Length','Width','Nodes_x','Nodes_y','k','Cp','rho']
+        keys=['Length','Nodes_x','k','Cp','rho']
         for i in keys:
             self.fout.write(i)
             self.fout.write(':')
@@ -69,7 +69,7 @@ class FileOut():
 #            self.fout.write('\n')
         
         self.Write_single_line('\nMeshing details:')
-        keys=['bias_type_x','bias_size_x','bias_type_y','bias_size_y']
+        keys=['bias_type_x','bias_size_x']
         for i in keys:
             self.fout.write(i)
             self.fout.write(':')
@@ -161,7 +161,7 @@ class FileIn():
                 line=st.split(line, ':')
                 # Domain settings
                 if line[0] in keys_Settings:
-                    if line[0]=='Nodes_x' or line[0]=='Nodes_y':
+                    if line[0]=='Nodes_x':
                         settings[line[0]]=int(line[1])
                     elif st.find(line[1], 'None')>=0 or st.find(line[1], ',')>=0\
                         or line[0]=='Domain':

@@ -1,0 +1,54 @@
+######################################################
+#             1D Heat Conduction Solver              #
+#              Created by J. Mark Epps               #
+#          Part of Masters Thesis at UW 2018-2020    #
+######################################################
+
+############### INPUT FILE #########################
+##########Input_file##################
+
+Settings:
+Length:1.0
+Nodes_x:61
+k:70.0
+Cp:800.0
+rho:5000.0
+
+Meshing details:
+bias_type_x:None
+bias_size_x:0.003
+
+Source Terms:
+Source_Uniform:100000.0
+Source_Kim:None
+Ea:48000.0
+A0:4890000.0
+dH:rho,63000000000
+Ignition:eta,0.8
+
+Time advancement:
+Fo:0.2
+dt:None
+total_time_steps:4000
+total_time:None
+Restart:None
+Time_Scheme:Explicit
+Convergence:0.0001
+Max_iterations:100
+Number_Data_Output:4
+Output_directory:Tests/1
+
+Boundary conditions:
+#bc_left_E:['T', 600.0, (0, -1)]
+bc_left_E:T,600.0,0,-1
+#bc_right_E:['T', 300.0, (0, -1)]
+bc_right_E:T,300.0,0,-1
+#bc_left_rad:None
+bc_left_rad:None
+#bc_right_rad:None
+bc_right_rad:None
+
+Final time step size: 198.412698 ms
+Ignition time: 0.000000 ms
+Solver time per 1000 time steps: 0.006317 min
+Average wave speed: 0 m/s

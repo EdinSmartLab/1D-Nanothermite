@@ -40,9 +40,8 @@ print('#          Part of Masters Thesis at UW 2018-2020    #')
 print('######################################################\n')
 
 inputargs=sys.argv
-if len(inputargs)>2:
+if len(inputargs)>1:
     dir_files=inputargs[1]
-    OneD_graphs=int(inputargs[2])
 else:
     print 'Usage is: python Post.py [Output directory] [1D graphs]\n'
     print 'where\n'
@@ -94,52 +93,33 @@ while i>j:
 
 # Graph spacial limits
 xmin,xmax=0,0.001
-ymin,ymax=0,0.006
 #xmin,xmax=0.0004,0.0006
 #ymin,ymax=0.005,0.006
 
 # Generate graphs
 X=np.load('X.npy', False)
-Y=np.load('Y.npy', False)
 for time in times:
     T=np.load('T_'+time+'.npy', False)
     if st.find(source,'True')>=0:
         eta=np.load('eta_'+time+'.npy', False)
-        Y_tot=np.zeros_like(Y)
-    
-    # Temperature contour
-    fig=pyplot.figure(figsize=(6, 6))
-    pyplot.contourf(X, Y, T, alpha=0.5, cmap=cm.viridis)#, vmin=270, vmax=2000)  
-    pyplot.colorbar()
-    pyplot.xlabel('$x$ (m)')
-    pyplot.ylabel('$y$ (m)')
-#    pyplot.clim(300, 10000)
-    pyplot.xlim([xmin,xmax])
-    pyplot.ylim([ymin,ymax])
-    pyplot.title('Temperature distribution t='+time);
-    fig.savefig('T_'+time+'.png',dpi=300)
-    pyplot.close(fig)
+        Y_tot=np.zeros_like(X)
     
     # 1D temperature profile at centreline
-    # if OneD_graphs==1:
-        # fig=pyplot.figure(figsize=(6, 6))
-        # pyplot.plot(Y[:,1], T[:,int(len(T[0,:])/2)])
-        # pyplot.xlabel('$y$ (m)')
-        # pyplot.ylabel('T (K)')
-        # pyplot.title('Centreline Temperature distribution t='+time)
-        # fig.savefig('T_1D_'+time+'.png',dpi=300)
-        # pyplot.close(fig)
+     
+    fig=pyplot.figure(figsize=(6, 6))
+    pyplot.plot(X, T)
+    pyplot.xlabel('$x$ (m)')
+    pyplot.ylabel('T (K)')
+    pyplot.title('Temperature distribution t='+time)
+    fig.savefig('T_'+time+'.png',dpi=300)
+    pyplot.close(fig)
     
     if st.find(source,'True')>=0:
         # Progress contour
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.contourf(X, Y, eta, alpha=0.5, cmap=cm.viridis)#, vmin=0.0, vmax=1.0)  
-        pyplot.colorbar()
+        pyplot.plot(X, eta)
         pyplot.xlabel('$x$ (m)')
-        pyplot.ylabel('$y$ (m)')
-    #    pyplot.clim(0.0, 1.0)
-        pyplot.xlim([xmin,xmax])
-        pyplot.ylim([ymin,ymax])
+        pyplot.ylabel('$\eta$ (-)')
         pyplot.title('Progress distribution t='+time);
         fig.savefig('eta_'+time+'.png',dpi=300)
         pyplot.close(fig)
@@ -147,37 +127,19 @@ for time in times:
         # Reaction rate contour
         phi=A0*(1-eta)*np.exp(-Ea/8.314/T)
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.contourf(X, Y, phi, alpha=0.5, cmap=cm.viridis)#, vmin=0.0, vmax=1.0)  
-        pyplot.colorbar(format='%.2e')
+        pyplot.plot(X, phi)
+        pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         pyplot.xlabel('$x$ (m)')
-        pyplot.ylabel('$y$ (m)')
-    #    pyplot.clim(0.0, 1.0)
-        pyplot.xlim([xmin,xmax])
-        pyplot.ylim([ymin,ymax])
-        pyplot.title('Reaction rate t='+time);
+        pyplot.ylabel('$d\eta/dt$ ($s^{-1}$)')
+        pyplot.title('Reaction rate t='+time)
         fig.savefig('Phi_'+time+'.png',dpi=300)
         pyplot.close(fig)
-        
-        # 1D Reaction rate profile at centreline
-        if OneD_graphs==1:
-            fig=pyplot.figure(figsize=(6, 6))
-            pyplot.plot(Y[:,1], phi[:,int(len(T[0,:])/2)])
-            pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-            pyplot.xlabel('$y$ (m)')
-            pyplot.ylabel('$d\eta/dt$ ($s^{-1}$)')
-            pyplot.title('Centreline Reaction rate t='+time)
-            fig.savefig('Phi_1D_'+time+'.png',dpi=300)
-            pyplot.close(fig)
     try:
         P=np.load('P_'+time+'.npy', False)
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.contourf(X, Y, P, alpha=0.5, cmap=cm.viridis)#, vmin=270, vmax=2000)  
-        pyplot.colorbar()
+        pyplot.plot(X,P)
         pyplot.xlabel('$x$ (m)')
-        pyplot.ylabel('$y$ (m)')
-    #    pyplot.clim(300, 10000)
-        pyplot.xlim([xmin,xmax])
-        pyplot.ylim([ymin,ymax])
+        pyplot.ylabel('Pressure (Pa)')
         pyplot.title('Pressure t='+time);
         fig.savefig('P_'+time+'.png',dpi=300)
         pyplot.close(fig)
@@ -189,13 +151,9 @@ for time in times:
     for i in range(len(titles)):
         Y_0=np.load('m_'+titles[i]+'_'+time+'.npy', False)
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.contourf(X, Y, Y_0, alpha=0.5, cmap=cm.viridis)#, vmin=0.0, vmax=1.0)  
-        pyplot.colorbar()
+        pyplot.plot(X,Y_0)
         pyplot.xlabel('$x$ (m)')
-        pyplot.ylabel('$y$ (m)')
-    #    pyplot.clim(0.0, 1.0)
-        pyplot.xlim([xmin,xmax])
-        pyplot.ylim([ymin,ymax])
+        pyplot.ylabel('$m$ ($kg/m^3$)')
         pyplot.title('Mass; $'+titles[i]+'$, t='+time);
         fig.savefig('m_'+titles[i]+'_'+time+'.png',dpi=300)
         pyplot.close(fig)
@@ -204,35 +162,5 @@ for time in times:
         
     print 'Processed '+time
     print '     Mass balance residual: %8f'%(np.amin(Y_tot)*10**6)
-
-if OneD_graphs==1:
-    print 'Creating 1D plots'
-    fig=pyplot.figure(figsize=(6, 6))
-    for time in times:
-        T=np.load('T_'+time+'.npy', False)
-        # 1D temperature profile at centreline
-        pyplot.plot(Y[:,1], T[:,int(len(T[0,:])/2)], label='t='+time)
-    pyplot.xlabel('$y$ (m)')
-    pyplot.ylabel('T (K)')
-    pyplot.legend()
-    pyplot.title('Centreline Temperature Evolution')
-    fig.savefig('T_1D.png',dpi=300)
-    pyplot.close(fig)
-    
-    if st.find(source,'True')>=0:
-        fig=pyplot.figure(figsize=(6, 6))
-        for time in times:
-            eta=np.load('eta_'+time+'.npy', False)
-            T=np.load('T_'+time+'.npy', False)
-            phi=A0*(1-eta)*np.exp(-Ea/8.314/T)
-            # 1D Reaction rate profile at centreline
-            pyplot.plot(Y[:,1], phi[:,int(len(T[0,:])/2)], label='t='+time)
-        pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        pyplot.xlabel('$y$ (m)')
-        pyplot.ylabel('$d\eta/dt$ ($s^{-1}$)')
-        pyplot.legend()
-        pyplot.title('Centreline Reaction rate Evolution')
-        fig.savefig('Phi_1D.png',dpi=300)
-        pyplot.close(fig)
 
 print '\nPost-processing complete'
