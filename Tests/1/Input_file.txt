@@ -27,28 +27,27 @@ dH:rho,63000000000
 Ignition:eta,0.8
 
 Time advancement:
-Fo:0.2
-dt:None
+Fo:None
+dt:1.0
 total_time_steps:4000
 total_time:None
 Restart:None
 Time_Scheme:Explicit
 Convergence:0.0001
 Max_iterations:100
-Number_Data_Output:4
+Number_Data_Output:5
 Output_directory:Tests/1
 
 Boundary conditions:
-#bc_left_E:['T', 600.0, (0, -1)]
-bc_left_E:T,600.0,0,-1
+#bc_left_E:['F', 0.0, (0, -1)]
+bc_left_E:F,0.0,0,-1
 #bc_right_E:['T', 300.0, (0, -1)]
 bc_right_E:T,300.0,0,-1
 #bc_left_rad:None
 bc_left_rad:None
 #bc_right_rad:None
 bc_right_rad:None
-
-Final time step size: 198.412698 ms
+#bc_left_P: time step size: 198.412698 ms
 Ignition time: 0.000000 ms
 Solver time per 1000 time steps: 0.006317 min
 Average wave speed: 0 m/s

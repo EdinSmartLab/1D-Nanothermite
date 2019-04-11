@@ -64,10 +64,10 @@ Ignition:eta,0.8
 ######################################################
 
 #Species:Al,CuO,Al_2O_3,Cu
-#Species:g,s
-#Specie_IC:0,1.22e-7
-#Specie_rho:1.1,3065
-#Specie_Cp:1000,600
+Species:g,s
+Specie_IC:0,1.22e-7
+Specie_rho:1.1,3065
+Specie_Cp:1000,600
 
 ######################################################
 #			Meshing details

@@ -72,7 +72,7 @@ class OneDimLineSolve():
         # Calculate properties
         k, rho, Cv, D=self.Domain.calcProp()
         mu=10**(-5)
-        perm=0*10**(-11)
+        perm=10**(-11)
         
         if self.dt=='None':
             dt=self.getdt(k, rho, Cv)
@@ -90,7 +90,7 @@ class OneDimLineSolve():
             m_c=copy.deepcopy(self.Domain.m_species)
             rho_spec=self.Domain.rho_species
             species=self.Domain.species_keys
-    #        Cp_spec=self.Domain.Cp_species
+            Cp_spec=self.Domain.Cp_species
             mu_c=copy.deepcopy(self.Domain.mu_species)
             mv_c=copy.deepcopy(self.Domain.mv_species)
             
@@ -261,25 +261,15 @@ class OneDimLineSolve():
         
         # Porous medium advection
 #            # Incoming fluxes
-#        self.Domain.E[:,1:]+=Ax[:,1:]*dt\
-#            *0.5*(rho_spec[species[0]][:,1:]+rho_spec[species[0]][:,:-1])*\
-#            (-perm/mu*(self.Domain.P[:,1:]-self.Domain.P[:,:-1])/self.dx[:,:-1])\
-#            *0.5*(T_c[:,1:]+T_c[:,:-1])*0.5*(Cp_spec[:,1:]+Cp_spec[:,:-1])
-#        self.Domain.E[1:,:]+=Ay[1:,:]*dt\
-#            *0.5*(rho_spec[species[0]][1:,:]+rho_spec[species[0]][:-1,:])*\
-#            (-perm/mu*(self.Domain.P[1:,:]-self.Domain.P[:-1,:])/self.dy[:-1,:])\
-#            *0.5*(T_c[1:,:]+T_c[:-1,:])*0.5*(Cp_spec[1:,:]+Cp_spec[:-1,:])
-#        
+#        self.Domain.E[1:]+=dt\
+#            *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+#            (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+#            *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[1:]+Cp_spec[:-1])
 #            # Outgoing fluxes
-#        self.Domain.E[:,:-1]-=Ax[:,:-1]*dt\
-#            *rho_spec[species[0]][:,:-1]*\
-#            (-perm/mu*(self.Domain.P[:,1:]-self.Domain.P[:,:-1])/self.dx[:,:-1])\
-#            *0.5*(T_c[:,1:]+T_c[:,:-1])*0.5*(Cp_spec[:,1:]+Cp_spec[:,:-1])
-#        self.Domain.E[:-1,:]-=Ay[:-1,:]*dt\
-#            *rho_spec[species[0]][:-1,:]*\
-#            (-perm/mu*(self.Domain.P[1:,:]-self.Domain.P[:-1,:])/self.dy[:-1,:])\
-#            *0.5*(T_c[1:,:]+T_c[:-1,:])*0.5*(Cp_spec[1:,:]+Cp_spec[:-1,:])
-
+#        self.Domain.E[:-1]-=dt\
+#            *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+#            (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+#            *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[1:]+Cp_spec[:-1])
         
 #        # Radiation effects
 #        self.Domain.T[1:-1,1:-1]+=0.8*5.67*10**(-8)*(T_c[:-2,1:-1]**4+T_c[2:,1:-1]**4+T_c[1:-1,:-2]**4+T_c[1:-1,2:]**4)
