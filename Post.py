@@ -34,7 +34,7 @@ from matplotlib import pyplot, cm
 pyplot.ioff()
 
 print('######################################################')
-print('#            2D Conduction Post-processing           #')
+print('#            1D Conduction Post-processing           #')
 print('#              Created by J. Mark Epps               #')
 print('#          Part of Masters Thesis at UW 2018-2020    #')
 print('######################################################\n')
@@ -43,10 +43,9 @@ inputargs=sys.argv
 if len(inputargs)>1:
     dir_files=inputargs[1]
 else:
-    print 'Usage is: python Post.py [Output directory] [1D graphs]\n'
+    print 'Usage is: python Post.py [Output directory]\n'
     print 'where\n'
     print '[Output directory] is the directory where the data is located'
-    print '[1D graphs] indicates whether 1D graphs should be output (1 or 0); default is 0'
     print '***********************************'
     sys.exit('Post-processing halted')
 

@@ -43,6 +43,7 @@ Ea:48000
 A0:4890000
 #dH:vol,63000000000
 dH:rho,4070000
+#dH:rho,4700000
 Ignition:eta,0.8
 #Ignition:Temp,1200
 
@@ -63,10 +64,10 @@ Ignition:eta,0.8
 ######################################################
 
 #Species:Al,CuO,Al_2O_3,Cu
-Species:g,s
-Specie_IC:0,1.22e-7
-Specie_rho:1.1,3065
-Specie_Cp:1000,600
+#Species:g,s
+#Specie_IC:0,1.22e-7
+#Specie_rho:1.1,3065
+#Specie_Cp:1000,600
 
 ######################################################
 #			Meshing details
@@ -93,10 +94,10 @@ bias_size_x:0.003
 #	'Restart': None OR a number sequence in T data file name (will restart at this time)
 ######################################################
 
-Fo:0.002
+Fo:0.2
 #dt:0.00000001
 dt:None
-total_time_steps:100000
+total_time_steps:10000
 total_time:None
 #total_time:0.002
 Time_Scheme:Explicit
@@ -125,8 +126,8 @@ Number_Data_Output:10
 # [IN PROGRESS] Radiation options: None or [emissivity, surrounding_Temp]
 ######################################################
 
-bc_left_E:C, 30, 300, 0, -1
-bc_right_E:C, 30, 300, 0, -1
+bc_left_E:F, 200000000, 0, -1
+bc_right_E:F, 0, 0, -1
 # numpy.linspace(400, 900, settings['Nodes_y'])
 
 bc_left_rad:None
