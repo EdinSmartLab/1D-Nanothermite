@@ -61,11 +61,11 @@ class BCs():
             
         # Apply radiation BCs
         if self.BCs['bc_left_rad']!='None':
-            E[:,0]+=dt*\
+            E[0]+=dt*\
                 self.BCs['bc_left_rad'][0]*5.67*10**(-8)*\
                 (self.BCs['bc_left_rad'][1]**4-T_prev[0]**4)
         if self.BCs['bc_right_rad']!='None':
-            E[:,-1]+=dt*\
+            E[-1]+=dt*\
                 self.BCs['bc_right_rad'][0]*5.67*10**(-8)*\
                 (self.BCs['bc_right_rad'][1]**4-T_prev[-1]**4)
             
@@ -121,39 +121,11 @@ class BCs():
     # Pressure BCs (eventually lead to momentum)
     def P(self, P):
         # Left face
-        for i in range(len(self.BCs['bc_left_P'])/3):
-            st=self.BCs['bc_left_P'][2+3*i][0]
-            en=self.BCs['bc_left_P'][2+3*i][1]
-            if self.BCs['bc_left_P'][3*i]=='grad':
-                P[st:en,0]=P[st:en,1]-self.BCs['bc_left_P'][1+3*i]*self.dx[st:en,0]
-                if len(self.BCs['bc_left_P'])/3-i==1:
-                    P[-1,0]=P[-1,1]-self.BCs['bc_left_P'][-2]*self.dx[-1,0]
-            
-        # Right face
-        for i in range(len(self.BCs['bc_right_P'])/3):
-            st=self.BCs['bc_right_P'][2+3*i][0]
-            en=self.BCs['bc_right_P'][2+3*i][1]
-            if self.BCs['bc_right_P'][3*i]=='grad':
-                P[st:en,-1]=self.BCs['bc_right_P'][1+3*i]*self.dx[st:en,-1]+P[st:en,-2]
-                if len(self.BCs['bc_right_P'])/3-i==1:
-                    P[-1,-1]=self.BCs['bc_right_P'][-2]*self.dx[-1,-1]+P[-1,-2]
+        if self.BCs['bc_left_P'][0]=='grad':
+            P[0]=P[1]-self.BCs['bc_left_P'][1]*self.dx[0]
         
-        # South face
-        for i in range(len(self.BCs['bc_south_P'])/3):
-            st=self.BCs['bc_south_P'][2+3*i][0]
-            en=self.BCs['bc_south_P'][2+3*i][1]
-            if self.BCs['bc_south_P'][3*i]=='grad':
-                P[0,st:en]=P[1,st:en]-self.BCs['bc_south_P'][1+3*i]*self.dy[0,st:en]
-                if len(self.BCs['bc_south_P'])/3-i==1:
-                    P[0,-1]=P[1,-1]-self.BCs['bc_south_P'][-2]*self.dy[0,-1]
-                    
-        # North face
-        for i in range(len(self.BCs['bc_north_P'])/3):
-            st=self.BCs['bc_north_P'][2+3*i][0]
-            en=self.BCs['bc_north_P'][2+3*i][1]
-            if self.BCs['bc_north_P'][3*i]=='grad':
-                P[-1,st:en]=self.BCs['bc_north_P'][1+3*i]*self.dy[-1,st:en]+P[-2,st:en]
-                if len(self.BCs['bc_north_P'])/3-i==1:
-                    P[-1,-1]=self.BCs['bc_north_P'][-2]*self.dy[-1,-1]+P[-2,-1]
+        # Right face
+        if self.BCs['bc_right_P'][0]=='grad':
+            P[-1]=self.BCs['bc_right_P'][1]*self.dx[-1]+P[-2]
             
         return 0

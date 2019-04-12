@@ -42,13 +42,13 @@ Time_Scheme:Explicit
 Convergence:0.0001
 Max_iterations:100
 Number_Data_Output:10
-Output_directory:Tests/3
+Output_directory:Tests/5
 
 Boundary conditions:
 #bc_left_E:['F', 200000000.0, (0, -1)]
 bc_left_E:F,200000000.0,0,-1
-#bc_right_E:['F', 0.0, (0, -1)]
-bc_right_E:F,0.0,0,-1
+#bc_right_E:['C', (30.0, 300.0), (0, -1)]
+bc_right_E:C,30.0,300.0,0,-1
 #bc_left_rad:None
 bc_left_rad:None
 #bc_right_rad:None
@@ -62,15 +62,12 @@ bc_left_mass:grad,0.0,0,-1
 #bc_right_mass:['grad', 0.0, (0, -1)]
 bc_right_mass:grad,0.0,0,-1
 
-##bc_north_E_new:['F', 0.0, (0, -1)]
+##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
 
-Final time step size: 0.000035 ms
-Ignition time: 0.244021 ms
-Solver time per 1000 time steps: 0.032705 min
-Average wave speed: 9.001717 m/s
-
-#CV Calculation:
-#v[0]      =0.5*(dx[0])
-#v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
-#v[-1]     =0.25*(dx[-1])
-
+#################### Solver aborted #######################
+Time step 1752, Time elapsed=0.000248, error code=4;
+Error codes: 1-time step, 2-Energy, 3-reaction progress, 4-Species balance
+Final time step size: 0.000141 ms
+Ignition time: 0.244446 ms
+Solver time per 1000 time steps: 0.031954 min
+Average wave speed: 15.294908 m/s

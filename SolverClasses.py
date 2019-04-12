@@ -49,14 +49,14 @@ class OneDimLineSolve():
         self.BCs=BCClasses.BCs(BCs, self.dx)
         
     # Time step check with dx, dy, Fo number
-    def getdt(self, k, rho, Cv):
+    def getdt(self, k, rho, Cv, vol):
         # Stability check for Fourrier number
         if self.time_scheme=='Explicit':
             self.Fo=min(self.Fo, 1.0)
         elif self.Fo=='None':
             self.Fo=1.0
         
-        dt=self.Fo*rho*Cv/k*(self.Domain.CV_vol())**2
+        dt=self.Fo*rho*Cv/k*(vol)**2
         return np.amin(dt)
     
     # Interpolation function
@@ -75,9 +75,9 @@ class OneDimLineSolve():
         perm=10**(-11)
         
         if self.dt=='None':
-            dt=self.getdt(k, rho, Cv)
+            dt=self.getdt(k, rho, Cv, vol)
         else:
-            dt=min(self.dt,self.getdt(k, rho, Cv))
+            dt=min(self.dt,self.getdt(k, rho, Cv, vol))
             
         if (np.isnan(dt)) or (dt<=0):
             print '*********Diverging time step***********'
@@ -118,8 +118,8 @@ class OneDimLineSolve():
             # Adjust pressure
             print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
             print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
-            self.Domain.P[:]=self.Domain.m_species['g']/102*1000*8.314*300/(0.6*vol)
-    #        self.BCs.P(self.Domain.P)
+            self.Domain.P=self.Domain.m_species['g']/102*1000*8.314*300/(0.6*vol)
+#            self.BCs.P(self.Domain.P)
             print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
             
             # Use Darcy's law to directly calculate the velocities at the faces

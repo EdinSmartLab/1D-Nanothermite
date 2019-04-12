@@ -221,9 +221,9 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
     if ((Sources['Ignition'][0]=='eta' and np.amax(domain.eta)>=Sources['Ignition'][1])\
         or (Sources['Ignition'][0]=='Temp' and np.amax(T)>=Sources['Ignition'][1]))\
         and not BCs_changed:
-        solver.BCs.BCs['bc_north_E']=solver.BCs.BCs['bc_right_E']
-        input_file.fout.write('##bc_north_E_new:')
-        input_file.Write_single_line(str(solver.BCs.BCs['bc_north_E']))
+        solver.BCs.BCs['bc_left_E']=solver.BCs.BCs['bc_right_E']
+        input_file.fout.write('##bc_left_E_new:')
+        input_file.Write_single_line(str(solver.BCs.BCs['bc_left_E']))
         input_file.fout.write('\n')
         BCs_changed=True
         tign=t

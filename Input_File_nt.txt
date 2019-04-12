@@ -127,7 +127,7 @@ Number_Data_Output:10
 ######################################################
 
 bc_left_E:F, 200000000, 0, -1
-bc_right_E:F, 0, 0, -1
+bc_right_E:C, 30, 300, 0, -1
 # numpy.linspace(400, 900, settings['Nodes_y'])
 
 bc_left_rad:None
