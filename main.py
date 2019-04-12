@@ -137,6 +137,7 @@ if type(settings['Restart']) is int:
 
 k,rho,Cv,D=domain.calcProp()
 vol=domain.CV_vol()
+Ax=domain.CV_area()
 domain.E[:]=rho*vol*Cv*T
 del k,rho,Cv,D,T
 if (bool(domain.m_species)) and (type(settings['Restart']) is str):
@@ -196,7 +197,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
 #        v_0=np.sum(domain.eta[:,int(len(domain.eta[0,:])/2)]*domain.dy)
         v_0=np.sum(domain.eta*solver.dx)
-    err,dt=solver.Advance_Soln_Cond(nt, t, vol)
+    err,dt=solver.Advance_Soln_Cond(nt, t, vol, Ax)
     t+=dt
     nt+=1
     if err>0:

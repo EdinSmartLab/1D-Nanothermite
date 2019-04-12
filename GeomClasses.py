@@ -123,6 +123,12 @@ class OneDimLine():
         self.X=self.x
         
         self.isMeshed=True
+
+    # Calculate and return area of faces at each node
+    def CV_area(self):
+        Ax=np.ones_like(self.E)
+                
+        return Ax
     
     # Calculate and return volume of each node
     def CV_vol(self):
@@ -130,7 +136,7 @@ class OneDimLine():
         dx=self.dx
         v[0]      =0.5*(dx[0])
         v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
-        v[-1]     =0.25*(dx[-1])
+        v[-1]     =0.5*(dx[-1])
         
         return v
     

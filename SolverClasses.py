@@ -67,7 +67,7 @@ class OneDimLineSolve():
             return 2*k1*k2/(k1+k2)
         
     # Main solver (1 time step)
-    def Advance_Soln_Cond(self, nt, t, vol):
+    def Advance_Soln_Cond(self, nt, t, vol, Ax):
         max_Y,min_Y=0,1
         # Calculate properties
         k, rho, Cv, D=self.Domain.calcProp()
@@ -127,13 +127,13 @@ class OneDimLineSolve():
             flx=np.zeros_like(self.Domain.P)
             
             # Left face
-            flx[1:]+=dt\
+            flx[1:]+=Ax[1:]*dt\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
                 (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
             
             # Right face
-            flx[:-1]-=dt\
+            flx[:-1]-=Ax[:-1]*dt\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')*\
                 (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
@@ -250,10 +250,10 @@ class OneDimLineSolve():
         # Heat diffusion
             #left faces
         self.Domain.E[1:]   -= dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[1:]
             # Right face
         self.Domain.E[:-1] += dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[:-1]
         
         # Source terms
         self.Domain.E +=E_unif*dt
