@@ -170,10 +170,15 @@ class OneDimLine():
         # Species densities
         por=[0.6,0.4]
         if bool(self.m_species):
+            m_tot=np.zeros_like(self.E)
+            Cv[:]=0
             for i in range(len(self.species_keys)):
                 self.rho_species[self.species_keys[i]]=\
                     self.m_species[self.species_keys[i]]/(por[i]*self.CV_vol())
-                
+                Cv[:]+=self.m_species[self.species_keys[i]]*self.Cp_species[self.species_keys[i]]
+                m_tot+=self.m_species[self.species_keys[i]]
+            Cv[:]/=m_tot
+        
         return k, rho, Cv, D
     
     # Calculate temperature from energy
