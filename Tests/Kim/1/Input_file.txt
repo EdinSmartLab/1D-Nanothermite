@@ -8,8 +8,8 @@
 ##########Input_file##################
 
 Settings:
-Length:0.001
-Nodes_x:101
+Length:0.003
+Nodes_x:301
 k:65.0
 Cp:625.0
 rho:1523.0
@@ -29,20 +29,20 @@ Ignition:eta,0.8
 Time advancement:
 Fo:0.2
 dt:None
-total_time_steps:10000
+total_time_steps:5000
 total_time:None
 Restart:None
 Time_Scheme:Explicit
 Convergence:0.0001
 Max_iterations:100
-Number_Data_Output:10
+Number_Data_Output:5
 Output_directory:Tests/Kim/1
 
 Boundary conditions:
 #bc_left_E:['F', 200000000.0, (0, -1)]
 bc_left_E:F,200000000.0,0,-1
-#bc_right_E:['F', 0.0, (0, -1)]
-bc_right_E:F,0.0,0,-1
+#bc_right_E:['C', (30.0, 300.0), (0, -1)]
+bc_right_E:C,30.0,300.0,0,-1
 #bc_left_rad:None
 bc_left_rad:None
 #bc_right_rad:None
@@ -56,9 +56,9 @@ bc_left_mass:grad,0.0,0,-1
 #bc_right_mass:['grad', 0.0, (0, -1)]
 bc_right_mass:grad,0.0,0,-1
 
-##bc_north_E_new:['F', 0.0, (0, -1)]
+##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
 
-Final time step size: 0.000018 ms
-Ignition time: 0.154552 ms
-Solver time per 1000 time steps: 0.006742 min
-Average wave speed: 14.984538 m/s
+Final time step size: 0.000073 ms
+Ignition time: 0.154716 ms
+Solver time per 1000 time steps: 0.006927 min
+Average wave speed: 13.423756 m/s
