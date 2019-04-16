@@ -8,8 +8,8 @@
 ##########Input_file##################
 
 Settings:
-Length:0.001
-Nodes_x:101
+Length:0.003
+Nodes_x:301
 k:65.0
 Cp:600.0
 rho:3065.0
@@ -33,22 +33,22 @@ dH:rho,4070000
 Ignition:eta,0.8
 
 Time advancement:
-Fo:0.2
+Fo:0.05
 dt:None
-total_time_steps:10000
-total_time:None
+total_time_steps:None
+total_time:0.0006
 Restart:None
 Time_Scheme:Explicit
 Convergence:0.0001
 Max_iterations:100
-Number_Data_Output:10
-Output_directory:Tests/3
+Number_Data_Output:12
+Output_directory:Tests/5
 
 Boundary conditions:
 #bc_left_E:['F', 200000000.0, (0, -1)]
 bc_left_E:F,200000000.0,0,-1
-#bc_right_E:['F', 0.0, (0, -1)]
-bc_right_E:F,0.0,0,-1
+#bc_right_E:['C', (30.0, 300.0), (0, -1)]
+bc_right_E:C,30.0,300.0,0,-1
 #bc_left_rad:None
 bc_left_rad:None
 #bc_right_rad:None
@@ -62,15 +62,11 @@ bc_left_mass:grad,0.0,0,-1
 #bc_right_mass:['grad', 0.0, (0, -1)]
 bc_right_mass:grad,0.0,0,-1
 
-##bc_north_E_new:['F', 0.0, (0, -1)]
+##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
 
 Final time step size: 0.000035 ms
 Ignition time: 0.244021 ms
-Solver time per 1000 time steps: 0.032705 min
-Average wave speed: 9.001717 m/s
+Solver time per 1000 time steps: 0.032305 min
+Average wave speed: 8.737446 m/s
 
-#CV Calculation:
-#v[0]      =0.5*(dx[0])
-#v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
-#v[-1]     =0.25*(dx[-1])
-
+## No energy coupling, constant properties, longer domain to test stability
