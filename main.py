@@ -145,7 +145,7 @@ if (bool(domain.m_species)) and (type(settings['Restart']) is str):
 k,rho,Cv,D=domain.calcProp()
 vol=domain.CV_vol()
 Ax=domain.CV_area()
-domain.E[:]=rho*vol*Cv*T
+domain.E=rho*vol*Cv*T
 del k,rho,Cv,D,T
 print '################################'
 ##########################################################################

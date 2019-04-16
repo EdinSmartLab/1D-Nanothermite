@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 ######################################################
-#             2D Heat Conduction Solver              #
+#             1D Heat Conduction Solver              #
 #              Created by J. Mark Epps               #
 #          Part of Masters Thesis at UW 2018-2020    #
 ######################################################
 
-This file contains the post-processing script for 2D conduction:
+This file contains the post-processing script for 1D conduction:
     -Called from command line by:
         python Post-processing.py [Data directory relative to current directory]
     -Reads input file to get necessary parameters
-    -Reads x,y meshgrid arrays (.npy) for graph output
+    -Reads x meshgrid array (.npy) for graph output
     -Reads variable arrays (.npy files) and outputs graphs (.png) for 
     each time step in directory
 

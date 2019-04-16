@@ -259,21 +259,22 @@ class OneDimLineSolve():
         self.Domain.E +=E_unif*dt
         self.Domain.E +=E_kim *dt
         
-        # Porous medium advection
-        eflx=np.zeros_like(self.Domain.P)
-            # Incoming fluxes
-        eflx[1:]+=dt\
-            *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-            (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-            *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
-            # Outgoing fluxes
-        eflx[:-1]-=dt\
-            *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-            (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-            *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
-        
-        print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
-        self.Domain.E +=eflx
+        if bool(self.Domain.m_species):
+            # Porous medium advection
+            eflx=np.zeros_like(self.Domain.P)
+                # Incoming fluxes
+            eflx[1:]+=dt\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
+                # Outgoing fluxes
+            eflx[:-1]-=dt\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
+            
+            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
+            self.Domain.E +=eflx
 #        # Radiation effects
 #        self.Domain.T[1:-1,1:-1]+=0.8*5.67*10**(-8)*(T_c[:-2,1:-1]**4+T_c[2:,1:-1]**4+T_c[1:-1,:-2]**4+T_c[1:-1,2:]**4)
         
