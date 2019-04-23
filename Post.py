@@ -91,7 +91,7 @@ while i>j:
         i-=1
 
 # Graph spacial limits
-xmin,xmax=0,0.001
+xmin,xmax=0,3
 #xmin,xmax=0.0004,0.0006
 #ymin,ymax=0.005,0.006
 
@@ -106,40 +106,40 @@ for time in times:
     # 1D temperature profile at centreline
      
     fig=pyplot.figure(figsize=(6, 6))
-    pyplot.plot(X, T)
-    pyplot.xlabel('$x$ (m)')
+    pyplot.plot(X*1000, T)
+    pyplot.xlabel('$x$ (mm)')
     pyplot.ylabel('T (K)')
-    pyplot.title('Temperature distribution t='+time)
+    pyplot.title('Temperature distribution t='+time+' ms')
     fig.savefig('T_'+time+'.png',dpi=300)
     pyplot.close(fig)
     
     if st.find(source,'True')>=0:
         # Progress contour
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.plot(X, eta)
-        pyplot.xlabel('$x$ (m)')
+        pyplot.plot(X*1000, eta)
+        pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('$\eta$ (-)')
-        pyplot.title('Progress distribution t='+time);
+        pyplot.title('Progress distribution t='+time+' ms');
         fig.savefig('eta_'+time+'.png',dpi=300)
         pyplot.close(fig)
         
         # Reaction rate contour
         phi=A0*(1-eta)*np.exp(-Ea/8.314/T)
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.plot(X, phi)
+        pyplot.plot(X*1000, phi)
         pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        pyplot.xlabel('$x$ (m)')
+        pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('$d\eta/dt$ ($s^{-1}$)')
-        pyplot.title('Reaction rate t='+time)
+        pyplot.title('Reaction rate t='+time+' ms')
         fig.savefig('Phi_'+time+'.png',dpi=300)
         pyplot.close(fig)
     try:
         P=np.load('P_'+time+'.npy', False)
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.plot(X,P)
-        pyplot.xlabel('$x$ (m)')
+        pyplot.plot(X*1000,P)
+        pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('Pressure (Pa)')
-        pyplot.title('Pressure t='+time);
+        pyplot.title('Pressure t='+time+' ms');
         fig.savefig('P_'+time+'.png',dpi=300)
         pyplot.close(fig)
     except:
@@ -150,10 +150,10 @@ for time in times:
     for i in range(len(titles)):
         Y_0=np.load('m_'+titles[i]+'_'+time+'.npy', False)
         fig=pyplot.figure(figsize=(6, 6))
-        pyplot.plot(X,Y_0)
-        pyplot.xlabel('$x$ (m)')
+        pyplot.plot(X*1000,Y_0)
+        pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('$m$ ($kg/m^3$)')
-        pyplot.title('Mass; $'+titles[i]+'$, t='+time);
+        pyplot.title('Mass; $'+titles[i]+'$, t='+time+' ms');
         fig.savefig('m_'+titles[i]+'_'+time+'.png',dpi=300)
         pyplot.close(fig)
         Y_tot+=Y_0

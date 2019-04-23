@@ -118,7 +118,7 @@ class OneDimLineSolve():
             # Adjust pressure
             print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
             print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
-            self.Domain.P=self.Domain.m_species['g']/102*1000*8.314*300/(0.6*vol)
+            self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*T_c/(0.6*vol)
 #            self.BCs.P(self.Domain.P)
             print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
             
@@ -129,13 +129,13 @@ class OneDimLineSolve():
             # Left face
             flx[1:]+=Ax[1:]*dt\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[1:]
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
             
             # Right face
             flx[:-1]-=Ax[:-1]*dt\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[:-1]
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
             
             
@@ -250,14 +250,14 @@ class OneDimLineSolve():
         # Heat diffusion
             #left faces
         self.Domain.E[1:]   -= dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[1:]
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[1:]#/vol[1:]
             # Right face
         self.Domain.E[:-1] += dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[:-1]
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[:-1]#/vol[:-1]
         
         # Source terms
-        self.Domain.E +=E_unif*dt
-        self.Domain.E +=E_kim *dt
+        self.Domain.E +=E_unif*dt#/vol
+        self.Domain.E +=E_kim *dt#/vol
         
         if bool(self.Domain.m_species):
             # Porous medium advection
@@ -266,12 +266,12 @@ class OneDimLineSolve():
             eflx[1:]+=dt\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
                 (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[1:]
                 # Outgoing fluxes
             eflx[:-1]-=dt\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
                 (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[:-1]
             
             print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
             self.Domain.E +=eflx

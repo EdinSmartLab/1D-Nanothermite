@@ -14,17 +14,17 @@
 #	Properties are in standard units J, kg, K, W, m
 #	k,Cp,rho: [value]
 #	k,Cp,rho: eta,[value when eta=0],[value when eta=1]
-#	Cp: spec (calculate based on species mass fractions spec)
+#	rho,Cp: spec (calculate based on species mass fractions)
 ######################################################
 
 Length:0.003
 Nodes_x:301
 #k:65
-#Cp:spec
-#rho:3065
+Cp:spec
+rho:3065
 k:65
-Cp:625
-rho:1523
+#Cp:625
+#rho:1523
 #k:eta,39,108
 #Cp:eta,600,1100
 #rho:eta,5643,7191
@@ -44,8 +44,8 @@ Source_Kim:True
 Ea:48000
 A0:4890000
 #dH:vol,63000000000
-#dH:rho,4070000
-dH:rho,4700000
+dH:rho,4070000
+#dH:rho,4700000
 Ignition:eta,0.8
 #Ignition:Temp,1200
 
@@ -66,10 +66,10 @@ Ignition:eta,0.8
 ######################################################
 
 #Species:Al,CuO,Al_2O_3,Cu
-#Species:g,s
-#Specie_IC:0,1.22e-7
-#Specie_rho:1.1,3065
-#Specie_Cp:1000,600
+Species:g,s
+Specie_IC:0,1.22e-7
+Specie_rho:1.1,3065
+Specie_Cp:1000,600
 
 ######################################################
 #			Meshing details
@@ -96,19 +96,19 @@ bias_size_x:0.003
 #	'Restart': None OR a number sequence in T data file name (will restart at this time)
 ######################################################
 
-Fo:0.2
+Fo:0.05
 #dt:0.00000001
-dt:None
-total_time_steps:5000
-total_time:None
+dt:1e-9
+total_time_steps:None
+total_time:7e-4
 #total_time:0.002
 Time_Scheme:Explicit
-Restart:None
+Restart:210035
 
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:5
+Number_Data_Output:20
 
 ######################################################
 #			Boundary conditions

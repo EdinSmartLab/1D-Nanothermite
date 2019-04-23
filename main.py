@@ -145,7 +145,7 @@ if (bool(domain.m_species)) and (type(settings['Restart']) is str):
 k,rho,Cv,D=domain.calcProp()
 vol=domain.CV_vol()
 Ax=domain.CV_area()
-domain.E=rho*vol*Cv*T
+domain.E=rho*Cv*T*vol
 del k,rho,Cv,D,T
 print '################################'
 ##########################################################################
@@ -171,7 +171,7 @@ np.save('X', domain.X, False)
 ##########################################################################
 # -------------------------------------Solve
 ##########################################################################
-t,nt,tign=float(time_max),0,0 # time, number steps and ignition time initializations
+t,nt,tign=float(time_max)/1000,0,0 # time, number steps and ignition time initializations
 v_0,v_1,v,N=0,0,0,0 # combustion wave speed variables initialization
 
 # Setup intervals to save data
@@ -227,7 +227,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
         input_file.fout.write('\n')
         BCs_changed=True
         tign=t
-        save_data(domain, Sources, Species, '{:f}'.format(t))
+        save_data(domain, Sources, Species, '{:f}'.format(t*1000))
 #    if not BCs_changed:
 #        k,rho,Cv=domain.calcProp()
 #        T_theo=300+2*solver.BCs.BCs['bc_north_E'][1]/k[-1,0]\
@@ -239,7 +239,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
 #            solver.BCs.BCs['bc_north_E']=solver.BCs.BCs['bc_right_E']
 #            BCs_changed=True
 #            tign=t
-#            save_data(domain, Sources, '{:f}'.format(t))
+#            save_data(domain, Sources, '{:f}'.format(t*1000))
     
     # Second point in calculating combustion propagation speed
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:

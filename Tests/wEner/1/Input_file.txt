@@ -69,4 +69,4 @@ Ignition time: 0.250882 ms
 Solver time per 1000 time steps: 0.034466 min
 Average wave speed: 5.047210 m/s
 
-## Energy coupling, specific heat based on mass fractions, 
+## Energy coupling, specific heat based on mass fractions, use volume/areas, stable
