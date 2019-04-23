@@ -35,29 +35,12 @@ class OneDimLine():
         self.Nx=settings['Nodes_x']
         self.x=np.zeros(self.Nx)
         self.dx=np.zeros(self.Nx) # NOTE: SIZE MADE TO MATCH REST OF ARRAYS (FOR NOW)
+        self.species_keys=[]
+        if bool(Species):
+            self.species_keys=Species['keys']
         
         # Variables for conservation equations
         self.E=np.zeros(self.Nx) # Lumped energy
-        self.eta=np.zeros_like(self.E) # extent of reaction
-        self.P=np.zeros_like(self.E) # pressure
-        
-        # Species
-        self.m_species={}
-        self.mu_species={}
-        self.mv_species={}
-        self.rho_species={}
-        self.Cp_species={}
-        if bool(Species):
-            self.species_keys=Species['keys']
-            i=0
-            for key in self.species_keys:
-                self.m_species[key]=np.zeros_like(self.E)
-                self.mu_species[key]=np.zeros_like(self.E)
-                self.mv_species[key]=np.zeros_like(self.E)
-                self.rho_species[key]=np.ones_like(self.E)*Species['Specie_rho'][i]
-                self.Cp_species[key]=np.ones_like(self.E)*Species['Specie_Cp'][i]
-                i+=1
-        self.m_0=np.zeros_like(self.E)
         
         # Thermal properties
         self.k=settings['k']
@@ -81,8 +64,10 @@ class OneDimLine():
         # Biasing options       
         self.xbias=[settings['bias_type_x'], settings['bias_size_x']]
         self.isMeshed=False
-        # Other useful calculations (put elsewhere??)
         
+        # MPI information (will be set by another function)
+        self.proc_left=-1
+        self.proc_right=-1
         
     # Discretize domain and save dx and dy
     def mesh(self):
@@ -91,31 +76,31 @@ class OneDimLine():
             smallest=self.xbias[1]
             self.dx[:-1]=np.linspace(2*self.L/(self.Nx-1)-smallest,smallest,self.Nx-1)
             self.dx[-1]=self.dx[-2]
-            print 'One way biasing in x: smallest element at x=%2f'%self.L
-            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
+#            print 'One way biasing in x: smallest element at x=%2f'%self.L
+#            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
         elif self.xbias[0]=='OneWayDown':
             smallest=self.xbias[1]
             self.dx[:-1]=np.linspace(smallest,2*self.L/(self.Nx-1)-smallest,self.Nx-1)
             self.dx[-1]=self.dx[-2]
-            print 'One way biasing in x: smallest element at x=0'
-            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
+#            print 'One way biasing in x: smallest element at x=0'
+#            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
         elif self.xbias[0]=='TwoWayEnd':
             smallest=self.xbias[1]
             self.dx[:int(self.Nx/2)]=np.linspace(smallest,2*self.L/(self.Nx-1)-smallest,(self.Nx-1)/2)
             self.dx[int(self.Nx/2):-1]=np.linspace(2*self.L/(self.Nx-1)-smallest,smallest,(self.Nx-1)/2)
             self.dx[-1]=self.dx[-2]
-            print 'Two way biasing in x: smallest elements at x=0 and %2f'%self.L
-            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
+#            print 'Two way biasing in x: smallest elements at x=0 and %2f'%self.L
+#            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
         elif self.xbias[0]=='TwoWayMid':
             smallest=self.xbias[1]
             self.dx[:int(self.Nx/2)]=np.linspace(2*self.L/(self.Nx-1)-smallest,smallest,(self.Nx-1)/2)
             self.dx[int(self.Nx/2):-1]=np.linspace(smallest,2*self.L/(self.Nx-1)-smallest,(self.Nx-1)/2)
             self.dx[-1]=self.dx[-2]
-            print 'Two way biasing in x: smallest elements around x=%2f'%(self.L/2)
-            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
+#            print 'Two way biasing in x: smallest elements around x=%2f'%(self.L/2)
+#            print 'Element size range: %2f, %2f'%(smallest, 2*self.L/(self.Nx-1)-smallest)
         else:
             self.dx[:]=self.L/(self.Nx-1)
-            print 'No biasing schemes specified in x'
+#            print 'No biasing schemes specified in x'
         
         for i in range(self.Nx-1):
             self.x[i+1]=self.x[i]+self.dx[i]
@@ -123,20 +108,50 @@ class OneDimLine():
         self.X=self.x
         
         self.isMeshed=True
-
+    
+    # Define other variables for calculations after MPI
+    def create_var(self, Species):
+        self.eta=np.zeros_like(self.E) # extent of reaction
+        self.P=np.zeros_like(self.E) # pressure
+        
+        # Species
+        self.m_species={}
+        self.mu_species={}
+        self.mv_species={}
+        self.rho_species={}
+        self.Cp_species={}
+        if bool(self.species_keys):
+            i=0
+            for key in self.species_keys:
+                self.m_species[key]=np.zeros_like(self.E)
+                self.mu_species[key]=np.zeros_like(self.E)
+                self.mv_species[key]=np.zeros_like(self.E)
+                self.rho_species[key]=np.ones_like(self.E)*Species['Specie_rho'][i]
+                self.Cp_species[key]=np.ones_like(self.E)*Species['Specie_Cp'][i]
+                i+=1
+        self.m_0=np.zeros_like(self.E)
+          
     # Calculate and return area of faces at each node
     def CV_area(self):
-        Ax=np.ones_like(self.E)
+        Ax=np.ones_like(self.x)
                 
         return Ax
     
     # Calculate and return volume of each node
     def CV_vol(self):
-        v=np.zeros_like(self.E)
+        v=np.zeros_like(self.x)
         dx=self.dx
         v[0]      =0.5*(dx[0])
-        v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
-        v[-1]     =0.5*(dx[-1])
+        v[1:-1]   =0.5*(dx[1:-2]+dx[2:-1])
+        
+        if self.proc_left<0:
+            v[-1]=0.5*(dx[-2]+dx[-1])
+        elif self.proc_right<0:
+            v[0]+=0.5*(dx[1])
+            v[-1]=0.5*(dx[-1])
+        else:
+            v[0]+=0.5*(dx[1])
+            v[-1]=0.5*(dx[-2]+dx[-1])
         
         return v
     

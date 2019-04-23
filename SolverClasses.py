@@ -47,7 +47,12 @@ class OneDimLineSolve():
         
         # BC class
         self.BCs=BCClasses.BCs(BCs, self.dx)
-        
+        # Modify BCs if no process is next to current one
+        if self.Domain.proc_left>=0:
+            self.BCs.BCs['bc_left_E']=['F', 0.0, (0, -1)]
+        if self.Domain.proc_right>=0:
+            self.BCs.BCs['bc_right_E']=['F', 0.0, (0, -1)]
+            
     # Time step check with dx, dy, Fo number
     def getdt(self, k, rho, Cv, vol):
         # Stability check for Fourrier number
@@ -127,21 +132,28 @@ class OneDimLineSolve():
             flx=np.zeros_like(self.Domain.P)
             
             # Left face
-            flx[1:]+=Ax[1:]*dt\
-                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[1:]
+            flx[1:-1]+=Ax[1:-1]*dt\
+                *self.interpolate(rho_spec[species[0]][1:-1],rho_spec[species[0]][:-2],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:-1]-self.Domain.P[:-2])/self.dx[:-2])#/vol[1:]
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-            
+            if self.Domain.proc_right<0:
+                flx[-1]   += Ax[-1]*dt\
+                *self.interpolate(rho_spec[species[0]][-1],rho_spec[species[0]][-2],'Linear')*\
+                (-perm/mu*(self.Domain.P[-1]-self.Domain.P[-2])/self.dx[-1])#/vol[1:]
             # Right face
-            flx[:-1]-=Ax[:-1]*dt\
-                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[:-1]
+            flx[1:-1]-=Ax[1:-1]*dt\
+                *self.interpolate(rho_spec[species[0]][2:],rho_spec[species[0]][1:-1], 'Linear')*\
+                (-perm/mu*(self.Domain.P[2:]-self.Domain.P[1:-1])/self.dx[1:-1])#/vol[:-1]
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-            
+            if self.Domain.proc_left<0:
+                flx[0]-=Ax[0]*dt\
+                    *self.interpolate(rho_spec[species[0]][1],rho_spec[species[0]][0], 'Linear')*\
+                    (-perm/mu*(self.Domain.P[1]-self.Domain.P[0])/self.dx[0])#/vol[:-1]
+        #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
             
             print '    Gas fluxes in x: %f, %f'%(np.amax(flx)*10**(9),np.amin(flx)*10**(9))
             
-            self.Domain.m_species[species[0]]+=flx
+            self.Domain.m_species[species[0]][1:-1]+=flx[1:-1]
             
             # Source terms
     #        dm=deta*dt*(m_c[species[0]]+m_c[species[1]])
@@ -249,15 +261,22 @@ class OneDimLineSolve():
         ###################################################################
         # Heat diffusion
             #left faces
-        self.Domain.E[1:]   -= dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[1:]#/vol[1:]
+        self.Domain.E[1:-1]   -= dt*self.interpolate(k[:-2],k[1:-1], 'Harmonic')\
+                    *(T_c[1:-1]-T_c[:-2])/self.dx[:-2]*Ax[1:-1]#/vol[1:]
+        if self.Domain.proc_right<0:
+            self.Domain.E[-1]   -= dt*self.interpolate(k[-2],k[-1], 'Harmonic')\
+                    *(T_c[-1]-T_c[-2])/self.dx[-1]*Ax[-1]#/vol[1:]
+        
             # Right face
-        self.Domain.E[:-1] += dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[:-1]#/vol[:-1]
+        self.Domain.E[1:-1] += dt*self.interpolate(k[2:],k[1:-1], 'Harmonic')\
+                    *(T_c[2:]-T_c[1:-1])/self.dx[:-2]*Ax[1:-1]#/vol[:-1]
+        if self.Domain.proc_left<0:
+            self.Domain.E[0] += dt*self.interpolate(k[1],k[0], 'Harmonic')\
+                    *(T_c[1]-T_c[0])/self.dx[0]*Ax[0]#/vol[:-1]
         
         # Source terms
-        self.Domain.E +=E_unif*dt#/vol
-        self.Domain.E +=E_kim *dt#/vol
+        self.Domain.E[1:-1] +=E_unif[1:-1]*dt#/vol
+        self.Domain.E[1:-1] +=E_kim[1:-1] *dt#/vol
         
         if bool(self.Domain.m_species):
             # Porous medium advection

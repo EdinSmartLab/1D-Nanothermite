@@ -18,7 +18,7 @@
 ######################################################
 
 Length:0.003
-Nodes_x:301
+Nodes_x:360
 #k:65
 Cp:spec
 rho:3065
@@ -103,7 +103,7 @@ total_time_steps:None
 total_time:7e-4
 #total_time:0.002
 Time_Scheme:Explicit
-Restart:210035
+Restart:None
 
 Convergence:0.0001
 Max_iterations:100
