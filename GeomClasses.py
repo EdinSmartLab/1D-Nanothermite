@@ -29,12 +29,13 @@ import copy
 from MatClasses import Diff_Coef
 
 class OneDimLine():
-    def __init__(self, settings, Species, solver):
+    def __init__(self, settings, Species, solver, rank):
         
         self.L=settings['Length']
         self.Nx=settings['Nodes_x']
         self.x=np.zeros(self.Nx)
         self.dx=np.zeros(self.Nx) # NOTE: SIZE MADE TO MATCH REST OF ARRAYS (FOR NOW)
+        self.rank=rank
         self.species_keys=[]
         if bool(Species):
             self.species_keys=Species['keys']
@@ -139,7 +140,7 @@ class OneDimLine():
     
     # Calculate and return volume of each node
     def CV_vol(self):
-        v=np.zeros_like(self.x)
+        v=np.zeros_like(self.E)
         dx=self.dx
         v[0]      =0.5*(dx[0])
         v[1:-1]   =0.5*(dx[1:-2]+dx[2:-1])

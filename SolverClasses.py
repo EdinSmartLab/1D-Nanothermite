@@ -28,10 +28,11 @@ import copy
 #import temporal_schemes
 import Source_Comb
 import BCClasses
+from mpi4py import MPI
 
 # 2D solver (Cartesian coordinates)
 class OneDimLineSolve():
-    def __init__(self, geom_obj, settings, Sources, BCs, solver):
+    def __init__(self, geom_obj, settings, Sources, BCs, solver, size, comm):
         self.Domain=geom_obj # Geometry object
         self.time_scheme=settings['Time_Scheme']
         self.dx=geom_obj.dx
@@ -39,6 +40,9 @@ class OneDimLineSolve():
         self.dt=settings['dt']
         self.conv=settings['Convergence']
         self.countmax=settings['Max_iterations']
+        self.rank=geom_obj.rank # MPI info
+        self.size=size # MPI info
+        self.comm=comm # MPI comms
         
         # Define source terms and pointer to source object here
         self.get_source=Source_Comb.Source_terms(Sources['Ea'], Sources['A0'], Sources['dH'])
@@ -81,13 +85,32 @@ class OneDimLineSolve():
         
         if self.dt=='None':
             dt=self.getdt(k, rho, Cv, vol)
+            if self.Domain.rank==0:
+                for i in range(self.size-1):
+                    dat=self.comm.recv(source=i+1)
+                    dt=min(dt,dat)
+                for i in range(self.size-1):
+                    self.comm.send(dt, dest=i+1)
+            else:
+                self.comm.send(dt, dest=0)
+                dt=self.comm.recv(source=0)
         else:
             dt=min(self.dt,self.getdt(k, rho, Cv, vol))
+            if self.Domain.rank==0:
+                for i in range(self.size-1):
+                    dat=self.comm.recv(source=i+1)
+                    dt=min(dt,dat)
+                for i in range(self.size-1):
+                    self.comm.send(dt, dest=i+1)
+            else:
+                self.comm.send(dt, dest=0)
+                dt=self.comm.recv(source=0)
             
         if (np.isnan(dt)) or (dt<=0):
             print '*********Diverging time step***********'
             return 1, dt
-        print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)
+        if self.Domain.rank==0:
+            print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)
         
         # Copy needed variables and set pointers to other variables
         T_c=self.Domain.TempFromConserv()
@@ -121,11 +144,11 @@ class OneDimLineSolve():
         ###################################################################
         if bool(self.Domain.m_species):
             # Adjust pressure
-            print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
-            print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
+#            print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
+#            print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
             self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*T_c/(0.6*vol)
 #            self.BCs.P(self.Domain.P)
-            print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
+#            print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
             
             # Use Darcy's law to directly calculate the velocities at the faces
             # Ingoing fluxes
@@ -151,9 +174,9 @@ class OneDimLineSolve():
                     (-perm/mu*(self.Domain.P[1]-self.Domain.P[0])/self.dx[0])#/vol[:-1]
         #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
             
-            print '    Gas fluxes in x: %f, %f'%(np.amax(flx)*10**(9),np.amin(flx)*10**(9))
+#            print '    Gas fluxes in x: %f, %f'%(np.amax(flx)*10**(9),np.amin(flx)*10**(9))
             
-            self.Domain.m_species[species[0]][1:-1]+=flx[1:-1]
+            self.Domain.m_species[species[0]]+=flx
             
             # Source terms
     #        dm=deta*dt*(m_c[species[0]]+m_c[species[1]])
@@ -275,24 +298,34 @@ class OneDimLineSolve():
                     *(T_c[1]-T_c[0])/self.dx[0]*Ax[0]#/vol[:-1]
         
         # Source terms
-        self.Domain.E[1:-1] +=E_unif[1:-1]*dt#/vol
-        self.Domain.E[1:-1] +=E_kim[1:-1] *dt#/vol
+        self.Domain.E +=E_unif*dt#/vol
+        self.Domain.E +=E_kim *dt#/vol
         
         if bool(self.Domain.m_species):
             # Porous medium advection
             eflx=np.zeros_like(self.Domain.P)
                 # Incoming fluxes
-            eflx[1:]+=dt\
-                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[1:]
+            eflx[1:-1]+=dt\
+                *self.interpolate(rho_spec[species[0]][1:-1],rho_spec[species[0]][:-2],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:-1]-self.Domain.P[:-2])/self.dx[:-2])\
+                *0.5*(T_c[1:-1]+T_c[:-2])*0.5*(Cp_spec[species[0]][1:-1]+Cp_spec[species[0]][:-2])#/vol[1:]
+            if self.Domain.proc_right<0:
+                eflx[-1]+=dt\
+                    *self.interpolate(rho_spec[species[0]][-1],rho_spec[species[0]][-2],'Linear')*\
+                    (-perm/mu*(self.Domain.P[-1]-self.Domain.P[-2])/self.dx[-2])\
+                    *0.5*(T_c[-1]+T_c[-2])*0.5*(Cp_spec[species[0]][-1]+Cp_spec[species[0]][-2])#/vol[1:]
                 # Outgoing fluxes
-            eflx[:-1]-=dt\
-                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[:-1]
+            eflx[1:-1]-=dt\
+                *self.interpolate(rho_spec[species[0]][2:],rho_spec[species[0]][1:-1],'Linear')*\
+                (-perm/mu*(self.Domain.P[2:]-self.Domain.P[1:-1])/self.dx[1:-1])\
+                *0.5*(T_c[2:]+T_c[1:-1])*0.5*(Cp_spec[species[0]][2:]+Cp_spec[species[0]][1:-1])#/vol[:-1]
+            if self.Domain.proc_left<0:
+                eflx[0]-=dt\
+                    *self.interpolate(rho_spec[species[0]][1],rho_spec[species[0]][0],'Linear')*\
+                    (-perm/mu*(self.Domain.P[1]-self.Domain.P[0])/self.dx[0])\
+                    *0.5*(T_c[1]+T_c[0])*0.5*(Cp_spec[species[0]][1]+Cp_spec[species[0]][0])#/vol[:-1]
             
-            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
+#            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
             self.Domain.E +=eflx
 #        # Radiation effects
 #        self.Domain.T[1:-1,1:-1]+=0.8*5.67*10**(-8)*(T_c[:-2,1:-1]**4+T_c[2:,1:-1]**4+T_c[1:-1,:-2]**4+T_c[1:-1,2:]**4)

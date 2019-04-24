@@ -65,21 +65,112 @@ def MPI_discretize(domain, settings, rank, size):
     if rank==(size-1):
         domain.proc_right=-1
 
-def save_data(Domain, Sources, Species, time):
-    T=Domain.TempFromConserv()
-    # Send T data from all processes to process 0
-    # Use settings Nodes_x to allocate space
-    # data [1:-1] for interior processes
-    # data [:-1] for left
-    # data [1:] for right
-    np.save('T_'+time, T, False)
+# Update ghost nodes for processes
+def update_ghosts(domain, Sources, Species):
+    # Send to the left, receive from the right
+    comm.Send(domain.E[1], dest=domain.proc_left)
+    comm.Recv(domain.E[-1], source=domain.proc_right)
+    # Send to the right, receive from the left
+    comm.Send(domain.E[-2], dest=domain.proc_right)
+    comm.Recv(domain.E[1], source=domain.proc_left)
+    
     if st.find(Sources['Source_Kim'],'True')>=0:
-        np.save('eta_'+time, Domain.eta, False)
+        # Send to the left, receive from the right
+        comm.Send(domain.eta[1], dest=domain.proc_left)
+        comm.Recv(domain.eta[-1], source=domain.proc_right)
+        # Send to the right, receive from the left
+        comm.Send(domain.eta[-2], dest=domain.proc_right)
+        comm.Recv(domain.eta[1], source=domain.proc_left)
     if bool(Species):
-        np.save('P_'+time, Domain.P, False)
+        # Send to the left, receive from the right
+        comm.Send(domain.P[1], dest=domain.proc_left)
+        comm.Recv(domain.P[-1], source=domain.proc_right)
+        # Send to the right, receive from the left
+        comm.Send(domain.P[-2], dest=domain.proc_right)
+        comm.Recv(domain.P[1], source=domain.proc_left)
         for i in Species['keys']:
-            np.save('m_'+i+'_'+time, Domain.m_species[i], False)
-
+            # Send to the left, receive from the right
+            comm.Send(domain.m_species[i][1], dest=domain.proc_left)
+            comm.Recv(domain.m_species[i][-1], source=domain.proc_right)
+            # Send to the right, receive from the left
+            comm.Send(domain.m_species[i][-2], dest=domain.proc_right)
+            comm.Recv(domain.m_species[i][1], source=domain.proc_left)
+            
+# Function to save data; will only be called for process 0
+def save_data(Domain, Sources, Species, time, rank, size):
+    T=Domain.TempFromConserv()[:-1]
+    # Receive variable data from all processes
+    if rank==0:
+        for i in range(size-1):
+            len_arr=comm.recv(source=i+1)
+            dat=np.empty(len_arr)
+            comm.Recv(dat, source=i+1)
+            T=np.block([T, dat])
+        
+        np.save('T_'+time, T, False)
+        # Kim source term
+        if st.find(Sources['Source_Kim'],'True')>=0:
+            eta=Domain.eta.copy()[:-1]
+            for i in range(size-1):
+                len_arr=comm.recv(source=i+1)
+                dat=np.empty(len_arr)
+                comm.Recv(dat, source=i+1)
+                eta=np.block([eta, dat])
+            np.save('eta_'+time, eta, False)
+        # Species present
+        if bool(Species):
+            P=Domain.P.copy()[:-1]
+            for i in range(size-1):
+                len_arr=comm.recv(source=i+1)
+                dat=np.empty(len_arr)
+                comm.Recv(dat, source=i+1)
+                P=np.block([P, dat])
+            np.save('P_'+time, P, False)
+            for i in Species['keys']:
+                m_i=Domain.m_species[i].copy()[:-1]
+                for j in range(size-1):
+                    len_arr=comm.recv(source=j+1)
+                    dat=np.empty(len_arr)
+                    comm.Recv(dat, source=j+1)
+                    m_i=np.block([m_i, dat])
+                np.save('m_'+i+'_'+time, m_i, False)
+    # Processes on interior sending variable data to process 0
+    elif (Domain.proc_left>=0) and (Domain.proc_right>=0):
+        T=Domain.TempFromConserv()
+        len_arr=len(T)-2
+        comm.send(len_arr, dest=0)
+        comm.Send(T[1:-1], dest=0)
+        if st.find(Sources['Source_Kim'],'True')>=0:
+            len_arr=len(Domain.eta)-2
+            comm.send(len_arr, dest=0)
+            comm.Send(Domain.eta[1:-1], dest=0)
+        if bool(Species):
+            len_arr=len(Domain.P)-2
+            comm.send(len_arr, dest=0)
+            comm.Send(Domain.P[1:-1], dest=0)
+            for i in Species['keys']:
+                len_arr=len(Domain.m_species[i])-2
+                comm.send(len_arr, dest=0)
+                comm.Send(Domain.m_species[i][1:-1], dest=0)
+    # Process on domain end sending variable data to process 0
+    else:
+        T=Domain.TempFromConserv()
+        len_arr=len(T)-1
+        comm.send(len_arr, dest=0)
+        comm.Send(T[1:], dest=0)
+        if st.find(Sources['Source_Kim'],'True')>=0:
+            len_arr=len(Domain.eta)-1
+            comm.send(len_arr, dest=0)
+            comm.Send(Domain.eta[1:], dest=0)
+        if bool(Species):
+            len_arr=len(Domain.P)-1
+            comm.send(len_arr, dest=0)
+            comm.Send(Domain.P[1:], dest=0)
+            for i in Species['keys']:
+                len_arr=len(Domain.m_species[i])-1
+                comm.send(len_arr, dest=0)
+                comm.Send(Domain.m_species[i][1:], dest=0)
+                
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -132,7 +223,7 @@ if rank==0:
 ##########################################################################
 if rank==0:
     print 'Initializing geometry package...'
-domain=Geom.OneDimLine(settings, Species, 'Solid')
+domain=Geom.OneDimLine(settings, Species, 'Solid', rank)
 domain.mesh()
 if rank==0:
     print '################################'
@@ -140,55 +231,55 @@ if rank==0:
     np.save('X', domain.X, False)
 MPI_discretize(domain, settings, rank, size)
 domain.create_var(Species)
-solver=Solvers.OneDimLineSolve(domain, settings, Sources, BCs, 'Solid')
+solver=Solvers.OneDimLineSolve(domain, settings, Sources, BCs, 'Solid', size, comm)
 #print '****Rank: %i, x array size: %i'%(rank, len(domain.x))
 #print '****Rank: %i, dx array size: %i'%(rank, len(domain.dx))
 #print '****Rank: %i, E array size: %i'%(rank, len(domain.E))
 #print '****Rank: %i, settings: '%(rank)+str(settings)
-#if rank==0:
-#    print '################################'
-#    print 'Initializing domain...'
-#
-#time_max='0.000000'
-#T=300*np.ones_like(domain.E)
-## Restart from previous data
-#if type(settings['Restart']) is int:
-#    times=os.listdir('.')
-#    i=len(times)
-#    if i<2:
-#        sys.exit('Cannot find a file to restart a simulation with')
-#    j=0
-#    while i>j:
-#        if st.find(times[j],'T')==0 and st.find(times[j],'.npy')>0 \
-#            and st.find(times[j],str(settings['Restart']))>=0:
-#            times[j]=st.split(st.split(times[j],'_')[1],'.npy')[0]
-##            if st.find(times[j],str(settings['Restart']))>=0:
-#            time_max=times[j]
-#            j+=1
-#            break
-#        else:
-#            del times[j]
-#            i-=1
-#    T=np.load('T_'+time_max+'.npy')
-#    if st.find(Sources['Source_Kim'],'True')>=0:
-#        domain.eta=np.load('eta_'+time_max+'.npy')
-#    if bool(domain.m_species):
-#        for i in range(len(Species['Species'])):
-#            domain.m_species[Species['Species'][i]]=np.load('m_'+Species['Species'][i]+'_'+time_max+'.npy')
-#            domain.m_0+=domain.m_species[Species['Species'][i]]
-#
-#if (bool(domain.m_species)) and (type(settings['Restart']) is str):
-#    for i in range(len(Species['Species'])):
-##        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+if rank==0:
+    print '################################'
+    print 'Initializing domain...'
+
+time_max='0.000000'
+T=300*np.ones_like(domain.E)
+# Restart from previous data
+if type(settings['Restart']) is int:
+    times=os.listdir('.')
+    i=len(times)
+    if i<2:
+        sys.exit('Cannot find a file to restart a simulation with')
+    j=0
+    while i>j:
+        if st.find(times[j],'T')==0 and st.find(times[j],'.npy')>0 \
+            and st.find(times[j],str(settings['Restart']))>=0:
+            times[j]=st.split(st.split(times[j],'_')[1],'.npy')[0]
+#            if st.find(times[j],str(settings['Restart']))>=0:
+            time_max=times[j]
+            j+=1
+            break
+        else:
+            del times[j]
+            i-=1
+    T=np.load('T_'+time_max+'.npy')
+    if st.find(Sources['Source_Kim'],'True')>=0:
+        domain.eta=np.load('eta_'+time_max+'.npy')
+    if bool(domain.m_species):
+        for i in range(len(Species['Species'])):
+            domain.m_species[Species['Species'][i]]=np.load('m_'+Species['Species'][i]+'_'+time_max+'.npy')
+            domain.m_0+=domain.m_species[Species['Species'][i]]
+
+if (bool(domain.m_species)) and (type(settings['Restart']) is str):
+    for i in range(len(Species['Species'])):
 #        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-#        domain.m_species[Species['Species'][i]][0] *=0.5
-#        domain.m_species[Species['Species'][i]][-1]*=0.5
-#        domain.m_0+=domain.m_species[Species['Species'][i]] 
-#k,rho,Cv,D=domain.calcProp()
-#vol=domain.CV_vol()
-#Ax=domain.CV_area()
-#domain.E=rho*Cv*T*vol
-#del k,rho,Cv,D,T
+        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+        domain.m_species[Species['Species'][i]][0] *=0.5
+        domain.m_species[Species['Species'][i]][-1]*=0.5
+        domain.m_0+=domain.m_species[Species['Species'][i]] 
+k,rho,Cv,D=domain.calcProp()
+vol=domain.CV_vol()
+Ax=domain.CV_area()
+domain.E=rho*Cv*T*vol
+del k,rho,Cv,D,T
 if rank==0:
     print '################################'
     ##########################################################################
@@ -206,13 +297,13 @@ if rank==0:
     # Write input file with settings
     input_file.input_writer_cond(settings, Sources, Species, BCs)
     print '################################\n'
-#
-#    print 'Saving data to numpy array files...'
-#    save_data(domain, Sources, Species, time_max)
-#
-###########################################################################
-## -------------------------------------Solve
-###########################################################################
+
+    print 'Saving data to numpy array files...'
+save_data(domain, Sources, Species, time_max, rank, size)
+
+##########################################################################
+# -------------------------------------Solve
+##########################################################################
 #t,nt,tign=float(time_max)/1000,0,0 # time, number steps and ignition time initializations
 #v_0,v_1,v,N=0,0,0,0 # combustion wave speed variables initialization
 #
@@ -239,24 +330,40 @@ if rank==0:
 #    if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
 ##        v_0=np.sum(domain.eta[:,int(len(domain.eta[0,:])/2)]*domain.dy)
 #        v_0=np.sum(domain.eta*solver.dx)
+#    # Update ghost nodes
+#    update_ghosts(domain, Sources, Species)
+#    # Actual solve
 #    err,dt=solver.Advance_Soln_Cond(nt, t, vol, Ax)
 #    t+=dt
 #    nt+=1
+#    
+#    # Check all error codes and send the maximum code to all processes
+#    if rank==0:
+#        for i in range(size-1):
+#            dat=comm.recv(source=i+1)
+#            err=max(err,dat)
+#        for i in range(size-1):
+#            comm.send(err, dest=i+1)
+#    else:
+#        comm.send(err, dest=0)
+#        err=comm.recv(source=0)
+#    
 #    if err>0:
 #        if rank==0:
 #            print '#################### Solver aborted #######################'
 #            print 'Saving data to numpy array files...'
-#            save_data(domain, Sources, Species, '{:f}'.format(t*1000))
 #            input_file.Write_single_line('#################### Solver aborted #######################')
 #            input_file.Write_single_line('Time step %i, Time elapsed=%f, error code=%i;'%(nt,t,err))
 #            input_file.Write_single_line('Error codes: 1-time step, 2-Energy, 3-reaction progress, 4-Species balance')
+#        save_data(domain, Sources, Species, '{:f}'.format(t*1000), rank, size)
 #        break
 #    
 #    # Output data to numpy files
 #    if (output_data_nt!=0 and nt%output_data_nt==0) or \
 #        (output_data_t!=0 and (t>=output_data_t*t_inc and t-dt<output_data_t*t_inc)):
-#        print 'Saving data to numpy array files...'
-#        save_data(domain, Sources, Species, '{:f}'.format(t*1000))
+#        if rank==0:
+#            print 'Saving data to numpy array files...'
+#        save_data(domain, Sources, Species, '{:f}'.format(t*1000), rank, size)
 #        t_inc+=1
 #        
 #    # Change boundary conditions
@@ -271,7 +378,7 @@ if rank==0:
 #            input_file.Write_single_line(str(solver.BCs.BCs['bc_left_E']))
 #            input_file.fout.write('\n')
 #            tign=t
-#            save_data(domain, Sources, Species, '{:f}'.format(t*1000))
+#        save_data(domain, Sources, Species, '{:f}'.format(t*1000), rank, size)
 #        BCs_changed=True
 ##    if not BCs_changed:
 ##        k,rho,Cv=domain.calcProp()
@@ -284,7 +391,7 @@ if rank==0:
 ##            solver.BCs.BCs['bc_north_E']=solver.BCs.BCs['bc_right_E']
 ##            BCs_changed=True
 ##            tign=t
-##            save_data(domain, Sources, '{:f}'.format(t*1000))
+##            save_data(domain, Sources, '{:f}'.format(t*1000), rank, size)
 #    
 #    # Second point in calculating combustion propagation speed
 #    if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
@@ -293,7 +400,7 @@ if rank==0:
 #        if (v_1-v_0)/dt>0.001:
 #            v+=(v_1-v_0)/dt
 #            N+=1
-if rank==0:        
+#if rank==0:        
 #    time_end=time.time()
 #    input_file.Write_single_line('Final time step size: %f ms'%(dt*1000))
 #    print 'Ignition time: %f ms'%(tign*1000)
@@ -303,7 +410,7 @@ if rank==0:
 #    try:
 #        print 'Average wave speed: %f m/s'%(v/N)
 #        input_file.Write_single_line('Average wave speed: %f m/s'%(v/N))
-    input_file.close()
+input_file.close()
 #    except:
 #        print 'Average wave speed: 0 m/s'
 #        input_file.Write_single_line('Average wave speed: 0 m/s')
