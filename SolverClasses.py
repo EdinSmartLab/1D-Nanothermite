@@ -82,32 +82,20 @@ class OneDimLineSolve():
         k, rho, Cv, D=self.Domain.calcProp()
         mu=10**(-5)
         perm=10**(-11)
-        
         if self.dt=='None':
             dt=self.getdt(k, rho, Cv, vol)
-            if self.Domain.rank==0:
-                for i in range(self.size-1):
-                    dat=self.comm.recv(source=i+1)
-                    dt=min(dt,dat)
-                for i in range(self.size-1):
-                    self.comm.send(dt, dest=i+1)
-            else:
-                self.comm.send(dt, dest=0)
-                dt=self.comm.recv(source=0)
+            # Collect all dt from other processes and send minimum
+            dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
+            dt=self.comm.bcast(dt, root=0)
         else:
             dt=min(self.dt,self.getdt(k, rho, Cv, vol))
-            if self.Domain.rank==0:
-                for i in range(self.size-1):
-                    dat=self.comm.recv(source=i+1)
-                    dt=min(dt,dat)
-                for i in range(self.size-1):
-                    self.comm.send(dt, dest=i+1)
-            else:
-                self.comm.send(dt, dest=0)
-                dt=self.comm.recv(source=0)
-            
+            # Collect all dt from other processes and send minimum
+            dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
+            dt=self.comm.bcast(dt, root=0)
+#        print '****Rank: %i, using dt of %f'%(self.Domain.rank, dt*1000)
         if (np.isnan(dt)) or (dt<=0):
-            print '*********Diverging time step***********'
+            if self.Domain.rank==0:
+                print '*********Diverging time step***********'
             return 1, dt
         if self.Domain.rank==0:
             print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)

@@ -134,7 +134,7 @@ class OneDimLine():
           
     # Calculate and return area of faces at each node
     def CV_area(self):
-        Ax=np.ones_like(self.x)
+        Ax=np.ones_like(self.E)
                 
         return Ax
     
@@ -143,16 +143,16 @@ class OneDimLine():
         v=np.zeros_like(self.E)
         dx=self.dx
         v[0]      =0.5*(dx[0])
-        v[1:-1]   =0.5*(dx[1:-2]+dx[2:-1])
+        v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
+        v[-1]     =0.5*(dx[-1])
         
         if self.proc_left<0:
-            v[-1]=0.5*(dx[-2]+dx[-1])
+            v[-1]+=0.5*(dx[-1])
         elif self.proc_right<0:
-            v[0]+=0.5*(dx[1])
-            v[-1]=0.5*(dx[-1])
+            v[0]+=0.5*(dx[0])
         else:
-            v[0]+=0.5*(dx[1])
-            v[-1]=0.5*(dx[-2]+dx[-1])
+            v[0]+=0.5*(dx[0])
+            v[-1]+=0.5*(dx[-2])
         
         return v
     
