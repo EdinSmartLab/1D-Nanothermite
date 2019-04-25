@@ -200,6 +200,9 @@ except:
     os.makedirs(settings['Output_directory'])
     os.chdir(settings['Output_directory'])
 #print '****Rank: %i has read input file'%(rank)
+# Check if MPI can be used, exit if number nodes cannot be discretized
+if settings['Nodes_x']%size!=0:
+    sys.exit('%i nodes cannot be discretized into %i processes'%(settings['Nodes_x'], size))
 ##########################################################################
 # -------------------------------------Initialize solver and domain
 ##########################################################################
