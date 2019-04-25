@@ -134,7 +134,7 @@ class OneDimLineSolve():
             # Adjust pressure
 #            print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
 #            print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
-            self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*T_c/(0.6*vol)
+            self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*300/(0.6*vol)
 #            self.BCs.P(self.Domain.P)
 #            print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
             

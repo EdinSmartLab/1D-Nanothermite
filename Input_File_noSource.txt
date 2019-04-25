@@ -16,7 +16,7 @@
 ######################################################
 
 Length:1.0
-Nodes_x:61
+Nodes_x:360
 k:70
 Cp:800
 rho:5000
@@ -81,3 +81,9 @@ bc_left_E:T, 600,0,-1
 bc_left_rad:None
 bc_right_E:T, 300,0,-1
 bc_right_rad:None
+
+bc_left_P:grad,0,0,-1
+bc_right_P:grad,0,0,-1
+
+bc_left_mass:grad,0,0,-1
+bc_right_mass:grad,0,0,-1

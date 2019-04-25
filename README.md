@@ -7,7 +7,7 @@ This repository contains the Python code to solve the 1D Heat conduction equatio
 
 -Combustion source term from Kim (Explicit)
 
--can be run from command prompt
+-can be run from command prompt and must be run in parallel
 
 -can restart a simulation using Temperature data from previous run
 
@@ -16,9 +16,11 @@ This repository contains the Python code to solve the 1D Heat conduction equatio
 # Run code from cmd:
 cd [directory]
 
-python main.py [input file name] [Output directory]
+mpiexec -n [proc] python main.py [input file name] [Output directory]
 
 where:
+
+[proc]-number of processors used; must be an even number
 
 [input file name]-name of input file including extension in name (.txt files have been tested); based on current directory
 
