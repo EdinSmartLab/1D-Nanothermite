@@ -71,6 +71,29 @@ def MPI_discretize(domain, settings, rank, size):
     if rank==(size-1):
         domain.proc_right=-1
     
+# General function to compile a variable from all processes
+def compile_var(var, Domain, rank):
+    var_global=var[:-1].copy()
+    if rank==0:
+        for i in range(size-1):
+            len_arr=comm.recv(source=i+1)
+            dat=np.empty(len_arr)
+            comm.Recv(dat, source=i+1)
+            var_global=np.block([var_global, dat])
+    elif (Domain.proc_left>=0) and (Domain.proc_right>=0):
+        len_arr=len(var)-2
+        comm.send(len_arr, dest=0)
+        comm.Send(var[1:-1], dest=0)
+    else:
+        len_arr=len(var)-1
+        comm.send(len_arr, dest=0)
+        comm.Send(var[1:], dest=0)
+    len_arr=comm.bcast(len(var_global), root=0)
+    if rank!=0:
+        var_global=np.empty(len_arr)
+    comm.Bcast(var_global, root=0)
+    return var_global
+    
 # Update ghost nodes for processes
 def update_ghosts(domain, Sources, Species):
     # Send to the left, receive from the right
@@ -117,80 +140,93 @@ def update_ghosts(domain, Sources, Species):
             a=np.ones(1)*domain.m_species[i][0]
             comm.Recv(a, source=domain.proc_left)
             domain.m_species[i][0]=a
-# Function to save data; will only be called for process 0
+# Function to save data
 def save_data(Domain, Sources, Species, time, rank, size):
-    T=Domain.TempFromConserv()[:-1]
-    # Receive variable data from all processes
-    if rank==0:
-        for i in range(size-1):
-            len_arr=comm.recv(source=i+1)
-            dat=np.empty(len_arr)
-            comm.Recv(dat, source=i+1)
-            T=np.block([T, dat])
-        
-        np.save('T_'+time, T, False)
-        # Kim source term
-        if st.find(Sources['Source_Kim'],'True')>=0:
-            eta=Domain.eta.copy()[:-1]
-            for i in range(size-1):
-                len_arr=comm.recv(source=i+1)
-                dat=np.empty(len_arr)
-                comm.Recv(dat, source=i+1)
-                eta=np.block([eta, dat])
-            np.save('eta_'+time, eta, False)
-        # Species present
-        if bool(Species):
-            P=Domain.P.copy()[:-1]
-            for i in range(size-1):
-                len_arr=comm.recv(source=i+1)
-                dat=np.empty(len_arr)
-                comm.Recv(dat, source=i+1)
-                P=np.block([P, dat])
-            np.save('P_'+time, P, False)
-            for i in Species['keys']:
-                m_i=Domain.m_species[i].copy()[:-1]
-                for j in range(size-1):
-                    len_arr=comm.recv(source=j+1)
-                    dat=np.empty(len_arr)
-                    comm.Recv(dat, source=j+1)
-                    m_i=np.block([m_i, dat])
-                np.save('m_'+i+'_'+time, m_i, False)
-    # Processes on interior sending variable data to process 0
-    elif (Domain.proc_left>=0) and (Domain.proc_right>=0):
-        T=Domain.TempFromConserv()
-        len_arr=len(T)-2
-        comm.send(len_arr, dest=0)
-        comm.Send(T[1:-1], dest=0)
-        if st.find(Sources['Source_Kim'],'True')>=0:
-            len_arr=len(Domain.eta)-2
-            comm.send(len_arr, dest=0)
-            comm.Send(Domain.eta[1:-1], dest=0)
-        if bool(Species):
-            len_arr=len(Domain.P)-2
-            comm.send(len_arr, dest=0)
-            comm.Send(Domain.P[1:-1], dest=0)
-            for i in Species['keys']:
-                len_arr=len(Domain.m_species[i])-2
-                comm.send(len_arr, dest=0)
-                comm.Send(Domain.m_species[i][1:-1], dest=0)
-    # Process on domain end sending variable data to process 0
-    else:
-        T=Domain.TempFromConserv()
-        len_arr=len(T)-1
-        comm.send(len_arr, dest=0)
-        comm.Send(T[1:], dest=0)
-        if st.find(Sources['Source_Kim'],'True')>=0:
-            len_arr=len(Domain.eta)-1
-            comm.send(len_arr, dest=0)
-            comm.Send(Domain.eta[1:], dest=0)
-        if bool(Species):
-            len_arr=len(Domain.P)-1
-            comm.send(len_arr, dest=0)
-            comm.Send(Domain.P[1:], dest=0)
-            for i in Species['keys']:
-                len_arr=len(Domain.m_species[i])-1
-                comm.send(len_arr, dest=0)
-                comm.Send(Domain.m_species[i][1:], dest=0)
+    T=compile_var(Domain.TempFromConserv(), Domain, rank)
+    np.save('T_'+time, T, False)
+    # Kim source term
+    if st.find(Sources['Source_Kim'],'True')>=0:
+        eta=compile_var(Domain.eta, Domain, rank)
+        np.save('eta_'+time, eta, False)
+    if bool(Species):
+        P=compile_var(Domain.P, Domain, rank)
+        np.save('P_'+time, P, False)
+        for i in Species['keys']:
+            m_i=compile_var(Domain.m_species[i], Domain, rank)
+            np.save('m_'+i+'_'+time, m_i, False)
+    ################################### OLD MANNER
+#    T=Domain.TempFromConserv()[:-1]
+#    # Receive variable data from all processes
+#    if rank==0:
+#        for i in range(size-1):
+#            len_arr=comm.recv(source=i+1)
+#            dat=np.empty(len_arr)
+#            comm.Recv(dat, source=i+1)
+#            T=np.block([T, dat])
+#        
+#        np.save('T_'+time, T, False)
+#        # Kim source term
+#        if st.find(Sources['Source_Kim'],'True')>=0:
+#            eta=Domain.eta.copy()[:-1]
+#            for i in range(size-1):
+#                len_arr=comm.recv(source=i+1)
+#                dat=np.empty(len_arr)
+#                comm.Recv(dat, source=i+1)
+#                eta=np.block([eta, dat])
+#            np.save('eta_'+time, eta, False)
+#        # Species present
+#        if bool(Species):
+#            P=Domain.P.copy()[:-1]
+#            for i in range(size-1):
+#                len_arr=comm.recv(source=i+1)
+#                dat=np.empty(len_arr)
+#                comm.Recv(dat, source=i+1)
+#                P=np.block([P, dat])
+#            np.save('P_'+time, P, False)
+#            for i in Species['keys']:
+#                m_i=Domain.m_species[i].copy()[:-1]
+#                for j in range(size-1):
+#                    len_arr=comm.recv(source=j+1)
+#                    dat=np.empty(len_arr)
+#                    comm.Recv(dat, source=j+1)
+#                    m_i=np.block([m_i, dat])
+#                np.save('m_'+i+'_'+time, m_i, False)
+#    # Processes on interior sending variable data to process 0
+#    elif (Domain.proc_left>=0) and (Domain.proc_right>=0):
+#        T=Domain.TempFromConserv()
+#        len_arr=len(T)-2
+#        comm.send(len_arr, dest=0)
+#        comm.Send(T[1:-1], dest=0)
+#        if st.find(Sources['Source_Kim'],'True')>=0:
+#            len_arr=len(Domain.eta)-2
+#            comm.send(len_arr, dest=0)
+#            comm.Send(Domain.eta[1:-1], dest=0)
+#        if bool(Species):
+#            len_arr=len(Domain.P)-2
+#            comm.send(len_arr, dest=0)
+#            comm.Send(Domain.P[1:-1], dest=0)
+#            for i in Species['keys']:
+#                len_arr=len(Domain.m_species[i])-2
+#                comm.send(len_arr, dest=0)
+#                comm.Send(Domain.m_species[i][1:-1], dest=0)
+#    # Process on domain end sending variable data to process 0
+#    else:
+#        T=Domain.TempFromConserv()
+#        len_arr=len(T)-1
+#        comm.send(len_arr, dest=0)
+#        comm.Send(T[1:], dest=0)
+#        if st.find(Sources['Source_Kim'],'True')>=0:
+#            len_arr=len(Domain.eta)-1
+#            comm.send(len_arr, dest=0)
+#            comm.Send(Domain.eta[1:], dest=0)
+#        if bool(Species):
+#            len_arr=len(Domain.P)-1
+#            comm.send(len_arr, dest=0)
+#            comm.Send(Domain.P[1:], dest=0)
+#            for i in Species['keys']:
+#                len_arr=len(Domain.m_species[i])-1
+#                comm.send(len_arr, dest=0)
+#                comm.Send(Domain.m_species[i][1:], dest=0)
                 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -346,6 +382,7 @@ save_data(domain, Sources, Species, time_max, rank, size)
 ###########################################################################
 t,nt,tign=float(time_max)/1000,0,0 # time, number steps and ignition time initializations
 v_0,v_1,v,N=0,0,0,0 # combustion wave speed variables initialization
+dx=compile_var(domain.dx, domain, rank)
 
 # Setup intervals to save data
 output_data_t,output_data_nt=0,0
@@ -368,29 +405,32 @@ if rank==0:
 while nt<settings['total_time_steps'] and t<settings['total_time']:
     # First point in calculating combustion propagation speed
 #    T_0=domain.TempFromConserv()
-    print 'Rank %i has reached while loop'%(rank)
+#    print 'Rank %i has reached while loop'%(rank)
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
+        eta=compile_var(domain.eta, domain, rank)
         if rank==0:
-            eta=domain.eta.copy()
-            dx=domain.dx.copy()
-            for i in range(size-1):
-                len_arr=comm.recv(source=i+1)
-                dat=np.empty(len_arr)
-                comm.Recv(dat, source=i+1)
-                eta=np.block([eta, dat])
-                comm.Recv(dat, source=i+1)
-                dx=np.block([dx, dat])
             v_0=np.sum(eta*dx)
-        elif (domain.proc_left>=0) and (domain.proc_right>=0):
-            len_arr=len(domain.eta)-2
-            comm.send(len_arr, dest=0)
-            comm.Send(domain.eta[1:-1], dest=0)
-            comm.Send(domain.dx[1:-1], dest=0)
-        else:
-            len_arr=len(domain.eta)-1
-            comm.send(len_arr, dest=0)
-            comm.Send(domain.eta[1:], dest=0)
-            comm.Send(domain.dx[1:], dest=0)
+#        if rank==0:
+#            eta=domain.eta.copy()
+#            dx=domain.dx.copy()
+#            for i in range(size-1):
+#                len_arr=comm.recv(source=i+1)
+#                dat=np.empty(len_arr)
+#                comm.Recv(dat, source=i+1)
+#                eta=np.block([eta, dat])
+#                comm.Recv(dat, source=i+1)
+#                dx=np.block([dx, dat])
+#            v_0=np.sum(eta*dx)
+#        elif (domain.proc_left>=0) and (domain.proc_right>=0):
+#            len_arr=len(domain.eta)-2
+#            comm.send(len_arr, dest=0)
+#            comm.Send(domain.eta[1:-1], dest=0)
+#            comm.Send(domain.dx[1:-1], dest=0)
+#        else:
+#            len_arr=len(domain.eta)-1
+#            comm.send(len_arr, dest=0)
+#            comm.Send(domain.eta[1:], dest=0)
+#            comm.Send(domain.dx[1:], dest=0)
         
     # Update ghost nodes
     update_ghosts(domain, Sources, Species)
@@ -421,43 +461,8 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
         t_inc+=1
         
     # Change boundary conditions and calculate wave speed
-    if rank==0:
-        eta=domain.eta.copy()
-        T=domain.TempFromConserv()
-        dx=domain.dx.copy()
-        for i in range(size-1):
-            len_arr=comm.recv(source=i+1)
-            dat=np.empty(len_arr)
-            comm.Recv(dat, source=i+1)
-            eta=np.block([eta, dat])
-            comm.Recv(dat, source=i+1)
-            dx=np.block([dx, dat])
-            comm.Recv(dat, source=i+1)
-            T=np.block([T, dat])
-        v_1=np.sum(eta*dx)
-        if (v_1-v_0)/dt>0.001:
-            v+=(v_1-v_0)/dt
-            N+=1
-    elif (domain.proc_left>=0) and (domain.proc_right>=0):
-        len_arr=len(domain.eta)-2
-        comm.send(len_arr, dest=0)
-        comm.Send(domain.eta[1:-1], dest=0)
-        comm.Send(domain.dx[1:-1], dest=0)
-        T=domain.TempFromConserv()
-        comm.Send(T[1:-1], dest=0)
-    else:
-        len_arr=len(domain.eta)-1
-        comm.send(len_arr, dest=0)
-        comm.Send(domain.eta[1:], dest=0)
-        comm.Send(domain.dx[1:], dest=0)
-        T=domain.TempFromConserv()
-        comm.Send(T[1:], dest=0)
-    len_arr=comm.bcast(len(eta), root=0)
-    if rank!=0:
-        eta=np.empty(len_arr)
-        T=np.empty(len_arr)
-    comm.Bcast(eta, root=0)
-    comm.Bcast(T, root=0)
+    T=compile_var(domain.TempFromConserv(), domain, rank)
+    eta=compile_var(domain.eta, domain, rank)
     if ((Sources['Ignition'][0]=='eta' and np.amax(eta)>=Sources['Ignition'][1])\
         or (Sources['Ignition'][0]=='Temp' and np.amax(T)>=Sources['Ignition'][1]))\
         and not BCs_changed:
@@ -470,7 +475,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
             tign=t
         save_data(domain, Sources, Species, '{:f}'.format(t*1000), rank, size)
         BCs_changed=True
-        comm.bcast(BCs_changed, root=0)
+        BCs_changed=comm.bcast(BCs_changed, root=0)
     
     # Second point in calculating combustion propagation speed
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
