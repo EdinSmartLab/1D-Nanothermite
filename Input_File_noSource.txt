@@ -20,6 +20,9 @@ Nodes_x:360
 k:70
 Cp:800
 rho:5000
+Darcy_mu:1e-5
+Darcy_perm:1e-10
+Porosity:0.6
 
 ######################################################
 #			Source terms
@@ -27,7 +30,7 @@ rho:5000
 #	Source_Kim: True or None
 ######################################################
 
-Source_Uniform:100000
+Source_Uniform:None
 Source_Kim:None
 Ea:48000
 A0:4890000

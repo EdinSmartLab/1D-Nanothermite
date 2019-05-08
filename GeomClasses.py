@@ -36,6 +36,7 @@ class OneDimLine():
         self.x=np.zeros(self.Nx)
         self.dx=np.zeros(self.Nx) # NOTE: SIZE MADE TO MATCH REST OF ARRAYS (FOR NOW)
         self.rank=rank
+        self.porosity=settings['Porosity']
         self.species_keys=[]
         if bool(Species):
             self.species_keys=Species['keys']
@@ -59,6 +60,8 @@ class OneDimLine():
             line=st.split(self.k, ',')
             self.k0=float(line[1])
             self.k1=float(line[2])
+        self.mu=settings['Darcy_mu']
+        self.perm=settings['Darcy_perm']
         
         self.Diff=Diff_Coef()
         
@@ -164,7 +167,7 @@ class OneDimLine():
         D=copy.deepcopy(self.m_species)
         
         # Species densities and specific heat
-        por=[0.6,0.4]
+        por=[self.porosity,(1-self.porosity)]
         if bool(self.m_species):
             m_tot=np.zeros_like(self.E)
             for i in range(len(self.species_keys)):

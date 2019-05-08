@@ -15,8 +15,8 @@ This file contains classes for reading and writing files in proper format:
 
 # Dictionaries containing expected input file data; organized by type
 
-keys_Settings=['MPI_Processes', 'Length','Nodes_x','k','Cp','rho',\
-               'bias_type_x','bias_size_x']
+keys_Settings=['MPI_Processes', 'Length','Nodes_x','k','Cp','rho','Darcy_mu', \
+               'Darcy_perm','Porosity', 'bias_type_x','bias_size_x']
                
 keys_Sources=['Source_Uniform','Source_Kim','Ea','A0','dH', 'Ignition']
 
@@ -61,11 +61,14 @@ class FileOut():
     
     def input_writer_cond(self, settings, Sources, Species, BCs):
         self.Write_single_line('Settings:')
-        keys=['MPI_Processes','Length','Nodes_x','k','Cp','rho']
+        keys=['MPI_Processes','Length','Nodes_x','k','Cp','rho','Darcy_mu', 'Darcy_perm','Porosity']
         for i in keys:
-            self.fout.write(i)
-            self.fout.write(':')
-            self.Write_single_line(str(settings[i]))
+            try:
+                self.fout.write(i)
+                self.fout.write(':')
+                self.Write_single_line(str(settings[i]))
+            except:
+                continue
 #            self.fout.write('\n')
         
         self.Write_single_line('\nMeshing details:')

@@ -28,6 +28,9 @@ Cp:625
 #k:eta,39,108
 #Cp:eta,600,1100
 #rho:eta,5643,7191
+Darcy_mu:1e-5
+Darcy_perm:1e-10
+Porosity:0.6
 
 ######################################################
 #			Source terms
@@ -66,10 +69,10 @@ Ignition:eta,0.8
 ######################################################
 
 #Species:Al,CuO,Al_2O_3,Cu
-#Species:g,s
-#Specie_IC:0,1.22e-7
-#Specie_rho:1.1,3065
-#Specie_Cp:1000,600
+Species:g,s
+Specie_IC:0,1.22e-7
+Specie_rho:1.1,3065
+Specie_Cp:1000,600
 
 ######################################################
 #			Meshing details

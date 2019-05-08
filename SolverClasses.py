@@ -80,8 +80,8 @@ class OneDimLineSolve():
         max_Y,min_Y=0,1
         # Calculate properties
         k, rho, Cv, D=self.Domain.calcProp()
-        mu=10**(-5)
-        perm=10**(-11)
+        mu=self.Domain.mu
+        perm=self.Domain.perm
         if self.dt=='None':
             dt=self.getdt(k, rho, Cv, vol)
             # Collect all dt from other processes and send minimum
@@ -107,8 +107,8 @@ class OneDimLineSolve():
             rho_spec=self.Domain.rho_species
             species=self.Domain.species_keys
             Cp_spec=self.Domain.Cp_species
-            mu_c=copy.deepcopy(self.Domain.mu_species)
-            mv_c=copy.deepcopy(self.Domain.mv_species)
+#            mu_c=copy.deepcopy(self.Domain.mu_species)
+#            mv_c=copy.deepcopy(self.Domain.mv_species)
             
             # Velocity
 #            u=mu_c[species[0]]/m_c[species[0]]
@@ -134,7 +134,7 @@ class OneDimLineSolve():
             # Adjust pressure
 #            print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
 #            print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
-            self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*300/(0.6*vol)
+            self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*T_c/(self.Domain.porosity*vol)
 #            self.BCs.P(self.Domain.P)
 #            print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
             
