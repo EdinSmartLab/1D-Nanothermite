@@ -143,25 +143,16 @@ class OneDimLineSolve():
             flx=np.zeros_like(self.Domain.P)
             
             # Left face
-            flx[1:-1]+=Ax[1:-1]*dt\
-                *self.interpolate(rho_spec[species[0]][1:-1],rho_spec[species[0]][:-2],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:-1]-self.Domain.P[:-2])/self.dx[:-2])#/vol[1:]
+            flx[1:]+=Ax[1:]*dt\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[1:]
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-            if self.Domain.proc_right<0:
-                flx[-1]   += Ax[-1]*dt\
-                *self.interpolate(rho_spec[species[0]][-1],rho_spec[species[0]][-2],'Linear')*\
-                (-perm/mu*(self.Domain.P[-1]-self.Domain.P[-2])/self.dx[-1])#/vol[1:]
             # Right face
-            flx[1:-1]-=Ax[1:-1]*dt\
-                *self.interpolate(rho_spec[species[0]][2:],rho_spec[species[0]][1:-1], 'Linear')*\
-                (-perm/mu*(self.Domain.P[2:]-self.Domain.P[1:-1])/self.dx[1:-1])#/vol[:-1]
+            flx[:-1]-=Ax[:-1]*dt\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')*\
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[:-1]
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-            if self.Domain.proc_left<0:
-                flx[0]-=Ax[0]*dt\
-                    *self.interpolate(rho_spec[species[0]][1],rho_spec[species[0]][0], 'Linear')*\
-                    (-perm/mu*(self.Domain.P[1]-self.Domain.P[0])/self.dx[0])#/vol[:-1]
-        #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-            
+          
 #            print '    Gas fluxes in x: %f, %f'%(np.amax(flx)*10**(9),np.amin(flx)*10**(9))
             
             self.Domain.m_species[species[0]]+=flx
@@ -272,18 +263,12 @@ class OneDimLineSolve():
         ###################################################################
         # Heat diffusion
             #left faces
-        self.Domain.E[1:-1]   -= dt*self.interpolate(k[:-2],k[1:-1], 'Harmonic')\
-                    *(T_c[1:-1]-T_c[:-2])/self.dx[:-2]*Ax[1:-1]#/vol[1:]
-        if self.Domain.proc_right<0:
-            self.Domain.E[-1]   -= dt*self.interpolate(k[-2],k[-1], 'Harmonic')\
-                    *(T_c[-1]-T_c[-2])/self.dx[-1]*Ax[-1]#/vol[1:]
+        self.Domain.E[1:]   -= dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[1:]#/vol[1:]
         
             # Right face
-        self.Domain.E[1:-1] += dt*self.interpolate(k[2:],k[1:-1], 'Harmonic')\
-                    *(T_c[2:]-T_c[1:-1])/self.dx[:-2]*Ax[1:-1]#/vol[:-1]
-        if self.Domain.proc_left<0:
-            self.Domain.E[0] += dt*self.interpolate(k[1],k[0], 'Harmonic')\
-                    *(T_c[1]-T_c[0])/self.dx[0]*Ax[0]#/vol[:-1]
+        self.Domain.E[:-1] += dt*self.interpolate(k[1:],k[:-1], 'Harmonic')\
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[:-1]#/vol[:-1]
         
         # Source terms
         self.Domain.E +=E_unif*dt#/vol
@@ -293,26 +278,16 @@ class OneDimLineSolve():
             # Porous medium advection
             eflx=np.zeros_like(self.Domain.P)
                 # Incoming fluxes
-            eflx[1:-1]+=dt\
-                *self.interpolate(rho_spec[species[0]][1:-1],rho_spec[species[0]][:-2],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:-1]-self.Domain.P[:-2])/self.dx[:-2])\
-                *0.5*(T_c[1:-1]+T_c[:-2])*0.5*(Cp_spec[species[0]][1:-1]+Cp_spec[species[0]][:-2])#/vol[1:]
-            if self.Domain.proc_right<0:
-                eflx[-1]+=dt\
-                    *self.interpolate(rho_spec[species[0]][-1],rho_spec[species[0]][-2],'Linear')*\
-                    (-perm/mu*(self.Domain.P[-1]-self.Domain.P[-2])/self.dx[-2])\
-                    *0.5*(T_c[-1]+T_c[-2])*0.5*(Cp_spec[species[0]][-1]+Cp_spec[species[0]][-2])#/vol[1:]
+            eflx[1:]+=dt\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[1:]
                 # Outgoing fluxes
-            eflx[1:-1]-=dt\
-                *self.interpolate(rho_spec[species[0]][2:],rho_spec[species[0]][1:-1],'Linear')*\
-                (-perm/mu*(self.Domain.P[2:]-self.Domain.P[1:-1])/self.dx[1:-1])\
-                *0.5*(T_c[2:]+T_c[1:-1])*0.5*(Cp_spec[species[0]][2:]+Cp_spec[species[0]][1:-1])#/vol[:-1]
-            if self.Domain.proc_left<0:
-                eflx[0]-=dt\
-                    *self.interpolate(rho_spec[species[0]][1],rho_spec[species[0]][0],'Linear')*\
-                    (-perm/mu*(self.Domain.P[1]-self.Domain.P[0])/self.dx[0])\
-                    *0.5*(T_c[1]+T_c[0])*0.5*(Cp_spec[species[0]][1]+Cp_spec[species[0]][0])#/vol[:-1]
-            
+            eflx[:-1]-=dt\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[:-1]
+
 #            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
             self.Domain.E +=eflx
 #        # Radiation effects
