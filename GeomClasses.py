@@ -149,14 +149,6 @@ class OneDimLine():
         v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
         v[-1]     =0.5*(dx[-1])
         
-        if self.proc_left<0:
-            v[-1]+=0.5*(dx[-1])
-        elif self.proc_right<0:
-            v[0]+=0.5*(dx[0])
-        else:
-            v[0]+=0.5*(dx[0])
-            v[-1]+=0.5*(dx[-2])
-        
         return v
     
     # Calculate temperature dependent properties
@@ -202,6 +194,6 @@ class OneDimLine():
         return k, rho, Cv, D
     
     # Calculate temperature from energy
-    def TempFromConserv(self):
+    def TempFromConserv(self, vol):
         k,rho,Cv,D=self.calcProp()
-        return self.E/Cv/rho/self.CV_vol()
+        return self.E/Cv/rho/vol

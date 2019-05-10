@@ -101,7 +101,7 @@ class OneDimLineSolve():
             print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)
         
         # Copy needed variables and set pointers to other variables
-        T_c=self.Domain.TempFromConserv()
+        T_c=self.Domain.TempFromConserv(vol)
         if bool(self.Domain.m_species):
             m_c=copy.deepcopy(self.Domain.m_species)
             rho_spec=self.Domain.rho_species
