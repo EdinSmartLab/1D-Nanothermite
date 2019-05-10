@@ -91,9 +91,6 @@ except:
     os.makedirs(settings['Output_directory'])
     os.chdir(settings['Output_directory'])
 #print '****Rank: %i has read input file'%(rank)
-# Check if MPI can be used, exit if number nodes cannot be discretized
-if settings['Nodes_x']%size!=0:
-    sys.exit('%i nodes cannot be discretized into %i processes'%(settings['Nodes_x'], size))
 ##########################################################################
 # -------------------------------------Initialize solver and domain
 ##########################################################################
@@ -112,10 +109,8 @@ mpi=mpi_routines.MPI_comms(comm, rank, size, Sources, Species)
 err,vol,Ax=mpi.MPI_discretize(domain, vol, Ax)
 if err>0:
     sys.exit('Problem discretizing domain into processes')
-print '****Rank: %i, x array : '%(rank)+str(domain.X)
-#print '****Rank: %i, dx array size: %i'%(rank, len(domain.dx))
-#print '****Rank: %i, E array size: %i'%(rank, len(domain.E))
-#print '****Rank: %i, settings: '%(rank)+str(settings['Restart'])
+#print '****Rank: %i, x array : '%(rank)+str(domain.X)
+
 domain.create_var(Species)
 solver=Solvers.OneDimLineSolve(domain, settings, Sources, copy.deepcopy(BCs), 'Solid', size, comm)
 if rank==0:
@@ -244,6 +239,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
     if err>0:
         if rank==0:
             print '#################### Solver aborted #######################'
+            print '#################### Error: %i'%(err)
             print 'Saving data to numpy array files...'
             input_file.Write_single_line('#################### Solver aborted #######################')
             input_file.Write_single_line('Time step %i, Time elapsed=%f, error code=%i;'%(nt,t,err))

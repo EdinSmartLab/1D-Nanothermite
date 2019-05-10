@@ -301,14 +301,11 @@ class OneDimLineSolve():
         ###################################################################
         if (np.isnan(np.amax(self.Domain.E))) \
         or (np.amin(self.Domain.E)<=0):
-            print '***********Divergence detected - energy************'
             return 2, dt
         elif (np.amax(self.Domain.eta)>1.0) or (np.amin(self.Domain.eta)<-10**(-9)):
-            print '***********Divergence detected - reaction progress************'
             return 3, dt
         elif bool(self.Domain.m_species) and ((min_Y<-10**(-9))\
                   or np.isnan(max_Y)):
-            print '***********Divergence detected - species mass ****************'
             return 4, dt
         else:
             return 0, dt
