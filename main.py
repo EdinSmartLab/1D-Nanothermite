@@ -88,7 +88,12 @@ fin.Read_Input(settings, Sources, Species, BCs)
 try:
     os.chdir(settings['Output_directory'])
 except:
-    os.makedirs(settings['Output_directory'])
+    if rank==0:
+        os.makedirs(settings['Output_directory'])
+        err=0
+    else:
+        err=1
+    err=comm.bcast(err, root=0) # Way of syncing processes
     os.chdir(settings['Output_directory'])
 #print '****Rank: %i has read input file'%(rank)
 ##########################################################################

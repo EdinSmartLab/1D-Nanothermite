@@ -16,7 +16,7 @@
 ######################################################
 
 Length:1.0
-Nodes_x:360
+Nodes_x:60
 k:70
 Cp:800
 rho:5000
@@ -58,7 +58,7 @@ bias_size_x:0.003
 
 Fo:0.2
 dt:None
-total_time_steps:4000
+total_time_steps:10000
 total_time:None
 Time_Scheme:Explicit
 Restart:None
@@ -66,7 +66,7 @@ Restart:None
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:4
+Number_Data_Output:10
 
 ######################################################
 #			Boundary conditions
