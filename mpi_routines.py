@@ -99,15 +99,15 @@ class MPI_comms():
             domain.P[0]=a
             for i in self.Species['keys']:
                 # Send to the left, receive from the right
-                self.comm.Send(domain.m_species[i][1], dest=domain.proc_left)
-                a=np.ones(1)*domain.m_species[i][-1]
+                self.comm.Send(domain.rho_species[i][1], dest=domain.proc_left)
+                a=np.ones(1)*domain.rho_species[i][-1]
                 self.comm.Recv(a, source=domain.proc_right)
-                domain.m_species[i][-1]=a
+                domain.rho_species[i][-1]=a
                 # Send to the right, receive from the left
-                self.comm.Send(domain.m_species[i][-2], dest=domain.proc_right)
-                a=np.ones(1)*domain.m_species[i][0]
+                self.comm.Send(domain.rho_species[i][-2], dest=domain.proc_right)
+                a=np.ones(1)*domain.rho_species[i][0]
                 self.comm.Recv(a, source=domain.proc_left)
-                domain.m_species[i][0]=a
+                domain.rho_species[i][0]=a
                 
     # General function to compile a variable from all processes
     def compile_var(self, var, Domain):
@@ -133,8 +133,9 @@ class MPI_comms():
         return var_global
         
     # Function to save data to npy files
-    def save_data(self, Domain, time, vol):
-        T=self.compile_var(Domain.TempFromConserv(vol), Domain)
+    def save_data(self, Domain, time):
+#    def save_data(self, Domain, time):
+        T=self.compile_var(Domain.TempFromConserv(), Domain)
         np.save('T_'+time, T, False)
         # Kim source term
         if st.find(self.Sources['Source_Kim'],'True')>=0:
@@ -144,5 +145,5 @@ class MPI_comms():
             P=self.compile_var(Domain.P, Domain)
             np.save('P_'+time, P, False)
             for i in self.Species['keys']:
-                m_i=self.compile_var(Domain.m_species[i], Domain)
-                np.save('m_'+i+'_'+time, m_i, False)
+                m_i=self.compile_var(Domain.rho_species[i], Domain)
+                np.save('rho_'+i+'_'+time, m_i, False)

@@ -58,14 +58,14 @@ class OneDimLineSolve():
             self.BCs.BCs['bc_right_E']=['F', 0.0, (0, -1)]
             
     # Time step check with dx, dy, Fo number
-    def getdt(self, k, rho, Cv, vol):
+    def getdt(self, k, rho, Cv, h):
         # Stability check for Fourrier number
         if self.time_scheme=='Explicit':
             self.Fo=min(self.Fo, 1.0)
         elif self.Fo=='None':
             self.Fo=1.0
         
-        dt=self.Fo*rho*Cv/k*(vol)**2
+        dt=self.Fo*rho*Cv/k*(h)**2
         return np.amin(dt)
     
     # Interpolation function
@@ -76,19 +76,20 @@ class OneDimLineSolve():
             return 2*k1*k2/(k1+k2)
         
     # Main solver (1 time step)
-    def Advance_Soln_Cond(self, nt, t, vol, Ax):
+    def Advance_Soln_Cond(self, nt, t, hx):
+#    def Advance_Soln_Cond(self, nt, t, hx):
         max_Y,min_Y=0,1
         # Calculate properties
         k, rho, Cv, D=self.Domain.calcProp()
         mu=self.Domain.mu
         perm=self.Domain.perm
         if self.dt=='None':
-            dt=self.getdt(k, rho, Cv, vol)
+            dt=self.getdt(k, rho, Cv, hx)
             # Collect all dt from other processes and send minimum
             dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
             dt=self.comm.bcast(dt, root=0)
         else:
-            dt=min(self.dt,self.getdt(k, rho, Cv, vol))
+            dt=min(self.dt,self.getdt(k, rho, Cv, hx))
             # Collect all dt from other processes and send minimum
             dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
             dt=self.comm.bcast(dt, root=0)
@@ -101,9 +102,9 @@ class OneDimLineSolve():
             print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)
         
         # Copy needed variables and set pointers to other variables
-        T_c=self.Domain.TempFromConserv(vol)
+        T_c=self.Domain.TempFromConserv()
         if bool(self.Domain.m_species):
-            m_c=copy.deepcopy(self.Domain.m_species)
+#            m_c=copy.deepcopy(self.Domain.m_species)
             rho_spec=self.Domain.rho_species
             species=self.Domain.species_keys
             Cp_spec=self.Domain.Cp_species
@@ -120,11 +121,11 @@ class OneDimLineSolve():
         # Source terms
         E_unif,E_kim=0,0
         if self.source_unif!='None':
-            E_unif      = self.get_source.Source_Uniform(self.source_unif, vol)
+            E_unif      = self.get_source.Source_Uniform(self.source_unif)
         if self.source_Kim=='True':
 #            self.Domain.eta=self.Domain.m_species[:,:,2]/0.25
-            E_kim, deta =self.get_source.Source_Comb_Kim(rho, T_c, self.Domain.eta, vol, dt)
-#            E_kim, deta =self.get_source.Source_Comb_Umbrajkar(rho, T_c, self.Domain.eta, self.Domain.CV_vol(), dt)
+            E_kim, deta =self.get_source.Source_Comb_Kim(rho, T_c, self.Domain.eta, dt)
+#            E_kim, deta =self.get_source.Source_Comb_Umbrajkar(rho, T_c, self.Domain.eta, dt)
         
         
         ###################################################################
@@ -134,7 +135,7 @@ class OneDimLineSolve():
             # Adjust pressure
 #            print '     Gas mass: %f, %f'%(np.amax(self.Domain.m_species['g'])*10**6,np.amin(self.Domain.m_species['g'])*10**6)
 #            print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
-            self.Domain.P=self.Domain.m_species['g']*1000*8.314/102*T_c/(self.Domain.porosity*vol)
+            self.Domain.P=self.Domain.rho_species['g']*self.Domain.R*T_c
 #            self.BCs.P(self.Domain.P)
 #            print '     Pressure: %f, %f'%(np.amax(self.Domain.P),np.amin(self.Domain.P))
             
@@ -143,29 +144,29 @@ class OneDimLineSolve():
             flx=np.zeros_like(self.Domain.P)
             
             # Left face
-            flx[1:]+=Ax[1:]*dt\
+            flx[1:]+=dt/hx[1:]\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[1:]
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
             # Right face
-            flx[:-1]-=Ax[:-1]*dt\
+            flx[:-1]-=dt/hx[:-1]\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')*\
-                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])#/vol[:-1]
+                (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
     #            self.interpolate(u[:,1:], u[:,:-1], 'Linear')
           
 #            print '    Gas fluxes in x: %f, %f'%(np.amax(flx)*10**(9),np.amin(flx)*10**(9))
             
-            self.Domain.m_species[species[0]]+=flx
+            self.Domain.rho_species[species[0]]+=flx
             
             # Source terms
     #        dm=deta*dt*(m_c[species[0]]+m_c[species[1]])
 #            dm=np.zeros_like(deta)
-            dm=deta*dt*(self.Domain.m_0)
+            dm=deta*dt*(self.Domain.rho_0)
 #            dm[dm<10**(-9)]=0
 #            print '     Mass generated: %f, %f'%(np.amax(dm)*10**(9),np.amin(dm)*10**(9))
     #        (m_c[species[0]]+m_c[species[1]])
-            self.Domain.m_species[species[0]]+=dm
-            self.Domain.m_species[species[1]]-=dm
+            self.Domain.rho_species[species[0]]+=dm
+            self.Domain.rho_species[species[1]]-=dm
                     
             max_Y=max(np.amax(self.Domain.m_species[species[0]]),\
                       np.amax(self.Domain.m_species[species[1]]))
@@ -173,7 +174,7 @@ class OneDimLineSolve():
                       np.amin(self.Domain.m_species[species[1]]))
             
             # Apply BCs
-#            self.BCs.mass(self.Domain.m_species[species[0]], self.Domain.P, Ax, Ay, vol)
+#            self.BCs.mass(self.Domain.m_species[species[0]], self.Domain.P, Ax, Ay)
         
         ###################################################################
         # Conservation of Momentum (x direction; gas)
@@ -195,7 +196,7 @@ class OneDimLineSolve():
 #            *0.5*(self.Domain.P[:,1:]+self.Domain.P[:,:-1])
 #                
 #        # Porous medium losses
-#        self.Domain.mu_species[species[0]]-=mu/perm*u*vol*dt
+#        self.Domain.mu_species[species[0]]-=mu/perm*u*dt
 #        
 #        ###################################################################
 #        # Conservation of Momentum (y direction; gas)
@@ -217,7 +218,7 @@ class OneDimLineSolve():
 #            *0.5*(self.Domain.P[1:,:]+self.Domain.P[:-1,:])
 #                
 #        # Porous medium losses
-#        self.Domain.mu_species[species[0]]-=mu/perm*v*vol*dt
+#        self.Domain.mu_species[species[0]]-=mu/perm*v*dt
         
         
         ###################################################################
@@ -264,29 +265,29 @@ class OneDimLineSolve():
         # Heat diffusion
             #left faces
         self.Domain.E[1:]   -= dt*self.interpolate(k[:-1],k[1:], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[1:]#/vol[1:]
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]/hx[1:]
         
             # Right face
         self.Domain.E[:-1] += dt*self.interpolate(k[1:],k[:-1], 'Harmonic')\
-                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]*Ax[:-1]#/vol[:-1]
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]/hx[:-1]
         
         # Source terms
-        self.Domain.E +=E_unif*dt#/vol
-        self.Domain.E +=E_kim *dt#/vol
+        self.Domain.E +=E_unif*dt
+        self.Domain.E +=E_kim *dt
         
         if bool(self.Domain.m_species):
             # Porous medium advection
             eflx=np.zeros_like(self.Domain.P)
                 # Incoming fluxes
-            eflx[1:]+=dt\
+            eflx[1:]+=dt/hx[1:]\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
                 (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[1:]
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
                 # Outgoing fluxes
-            eflx[:-1]-=dt\
+            eflx[:-1]-=dt/hx[:-1]\
                 *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
                 (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])#/vol[:-1]
+                *0.5*(T_c[1:]+T_c[:-1])*0.5*(Cp_spec[species[0]][1:]+Cp_spec[species[0]][:-1])
 
 #            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
             self.Domain.E +=eflx
@@ -294,7 +295,7 @@ class OneDimLineSolve():
 #        self.Domain.T[1:-1,1:-1]+=0.8*5.67*10**(-8)*(T_c[:-2,1:-1]**4+T_c[2:,1:-1]**4+T_c[1:-1,:-2]**4+T_c[1:-1,2:]**4)
         
         # Apply boundary conditions
-        self.BCs.Energy(self.Domain.E, T_c, dt, rho, Cv, vol)
+        self.BCs.Energy(self.Domain.E, T_c, dt, rho, Cv)
         
         ###################################################################
         # Divergence/Convergence checks

@@ -62,6 +62,7 @@ class OneDimLine():
             self.k1=float(line[2])
         self.mu=settings['Darcy_mu']
         self.perm=settings['Darcy_perm']
+        self.R=settings['gas_constant']
         
         self.Diff=Diff_Coef()
         
@@ -119,37 +120,33 @@ class OneDimLine():
         self.P=np.zeros_like(self.E) # pressure
         
         # Species
-        self.m_species={}
-        self.mu_species={}
-        self.mv_species={}
+#        self.m_species={}
+#        self.mu_species={}
+#        self.mv_species={}
         self.rho_species={}
         self.Cp_species={}
+        self.rho_0=np.zeros_like(self.E)
         if bool(self.species_keys):
             i=0
             for key in self.species_keys:
-                self.m_species[key]=np.zeros_like(self.E)
-                self.mu_species[key]=np.zeros_like(self.E)
-                self.mv_species[key]=np.zeros_like(self.E)
-                self.rho_species[key]=np.ones_like(self.E)*Species['Specie_rho'][i]
+#                self.m_species[key]=np.zeros_like(self.E)
+#                self.mu_species[key]=np.zeros_like(self.E)
+#                self.mv_species[key]=np.zeros_like(self.E)
+                self.rho_species[key]=np.ones_like(self.E)*Species['Specie_IC'][i]
                 self.Cp_species[key]=np.ones_like(self.E)*Species['Specie_Cp'][i]
+                self.rho_0+=self.rho_species[key]
                 i+=1
-        self.m_0=np.zeros_like(self.E)
-          
-    # Calculate and return area of faces at each node
-    def CV_area(self):
-        Ax=np.ones_like(self.E)
-                
-        return Ax
-    
-    # Calculate and return volume of each node
-    def CV_vol(self):
-        v=np.zeros_like(self.E)
-        dx=self.dx
-        v[0]      =0.5*(dx[0])
-        v[1:-1]   =0.5*(dx[1:-1]+dx[:-2])
-        v[-1]     =0.5*(dx[-1])
         
-        return v
+          
+    # Calculate and return dimensions of CV
+    def CV_dim(self):
+        hx=np.zeros_like(self.E)
+        
+        hx[0]      =0.5*(self.dx[0])
+        hx[1:-1]   =0.5*(self.dx[1:-1]+self.dx[:-2])
+        hx[-1]     =0.5*(self.dx[-1])
+        
+        return hx
     
     # Calculate temperature dependent properties
     def calcProp(self):
@@ -161,14 +158,13 @@ class OneDimLine():
         # Species densities and specific heat
         por=[self.porosity,(1-self.porosity)]
         if bool(self.m_species):
-            m_tot=np.zeros_like(self.E)
+#            m_tot=np.zeros_like(self.E) # Use rho to be bulk rho
             for i in range(len(self.species_keys)):
-                self.rho_species[self.species_keys[i]]=\
-                    self.m_species[self.species_keys[i]]/(por[i]*self.CV_vol())
-                Cv+=self.m_species[self.species_keys[i]]*self.Cp_species[self.species_keys[i]]
-                m_tot+=self.m_species[self.species_keys[i]]
-            Cv/=m_tot
-            rho=m_tot/self.CV_vol()
+#                self.rho_species[self.species_keys[i]]=\
+#                    self.m_species[self.species_keys[i]]/(por[i]*self.CV_vol())
+                Cv+=self.rho_species[self.species_keys[i]]*self.Cp_species[self.species_keys[i]]
+                rho+=self.rho_species[self.species_keys[i]]
+            Cv/=rho
         
         # Calculate properties based on eta or constant
         if type(self.k) is str and (st.find(self.k, 'eta')>=0):
@@ -194,6 +190,6 @@ class OneDimLine():
         return k, rho, Cv, D
     
     # Calculate temperature from energy
-    def TempFromConserv(self, vol):
+    def TempFromConserv(self):
         k,rho,Cv,D=self.calcProp()
-        return self.E/Cv/rho/vol
+        return self.E/Cv/rho

@@ -27,10 +27,10 @@ class BCs():
         self.dx=dx
         
     # Energy BCs
-    def Energy(self, E, T_prev, dt, rho, Cv, vol):
+    def Energy(self, E, T_prev, dt, rho, Cv):
         # Left face
         if self.BCs['bc_left_E'][0]=='T':
-            E[0]=self.BCs['bc_left_E'][1]*rho[0]*Cv[0]*vol[0]
+            E[0]=self.BCs['bc_left_E'][1]*rho[0]*Cv[0]
                 
         else:
             if self.BCs['bc_left_E'][0]=='F':
@@ -46,7 +46,7 @@ class BCs():
         
         # Right face
         if self.BCs['bc_right_E'][0]=='T':
-            E[-1]=self.BCs['bc_right_E'][1]*rho[-1]*Cv[-1]*vol[-1]
+            E[-1]=self.BCs['bc_right_E'][1]*rho[-1]*Cv[-1]
                 
         else:
             if self.BCs['bc_right_E'][0]=='F':
@@ -70,7 +70,7 @@ class BCs():
                 (self.BCs['bc_right_rad'][1]**4-T_prev[-1]**4)
             
     # Conservation of mass BCs
-    def mass(self, m, P, Ax, Ay, vol):
+    def mass(self, m, P, Ax, Ay):
         # Left face
         for i in range(len(self.BCs['bc_left_mass'])/3):
             st=self.BCs['bc_left_mass'][2+3*i][0]
@@ -87,9 +87,9 @@ class BCs():
                     m[-1,0]=m[-1,1]-self.BCs['bc_left_mass'][-2]*self.dx[-1,0]
             # Constant
             else:
-                m[st:en,0]=self.BCs['bc_left_mass'][1+3*i]*vol[st:en,0]
+                m[st:en,0]=self.BCs['bc_left_mass'][1+3*i]
                 if len(self.BCs['bc_left_mass'])/3-i==1:
-                    m[-1,0]=self.BCs['bc_left_mass'][-2]*vol[-1,0]
+                    m[-1,0]=self.BCs['bc_left_mass'][-2]
         # Right face
         for i in range(len(self.BCs['bc_right_mass'])/3):
             st=self.BCs['bc_right_mass'][2+3*i][0]

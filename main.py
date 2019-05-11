@@ -104,8 +104,7 @@ if rank==0:
     print 'Initializing geometry package...'
 domain=Geom.OneDimLine(settings, Species, 'Solid', rank)
 domain.mesh()
-vol=domain.CV_vol()
-Ax=domain.CV_area()
+hx=domain.CV_dim()
 if rank==0:
     print '################################'
     print 'Initializing MPI and solvers...'
@@ -115,8 +114,7 @@ err=mpi.MPI_discretize(domain)
 if err>0:
     sys.exit('Problem discretizing domain into processes')
 #print '****Rank: %i, x array : '%(rank)+str(domain.X)
-vol=mpi.split_var(vol,domain)
-Ax=mpi.split_var(Ax,domain)
+hx=mpi.split_var(hx, domain)
 
 domain.create_var(Species)
 solver=Solvers.OneDimLineSolve(domain, settings, Sources, copy.deepcopy(BCs), 'Solid', size, comm)
@@ -152,30 +150,30 @@ if type(settings['Restart']) is int:
         eta=np.load('eta_'+time_max+'.npy')
         domain.eta=mpi.split_var(eta, domain)
         del eta
-    if bool(domain.m_species):
+    if bool(domain.rho_species):
         P=np.load('P_'+time_max+'.npy')
         domain.P=mpi.split_var(P, domain)
         for i in range(len(Species['Species'])):
-            m_species=np.load('m_'+Species['Species'][i]+'_'+time_max+'.npy')
-            domain.m_species[Species['Species'][i]]=mpi.split_var(m_species, domain)
-            domain.m_0+=Species['Specie_IC'][i]
-        if domain.proc_left<0:
-            domain.m_0[0] *=0.5
-        elif domain.proc_right<0:
-            domain.m_0[-1]*=0.5
-        del m_species, P
+            rho_species=np.load('rho_'+Species['Species'][i]+'_'+time_max+'.npy')
+            domain.rho_species[Species['Species'][i]]=mpi.split_var(rho_species, domain)
+            domain.rho_0+=Species['Specie_IC'][i]
+#        if domain.proc_left<0:
+#            domain.m_0[0] *=0.5
+#        elif domain.proc_right<0:
+#            domain.m_0[-1]*=0.5
+        del rho_species, P
     
 if (bool(domain.m_species)) and (type(settings['Restart']) is str):
     for i in range(len(Species['Species'])):
 #        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-        if domain.proc_left<0:
-            domain.m_species[Species['Species'][i]][0] *=0.5
-        elif domain.proc_right<0:
-            domain.m_species[Species['Species'][i]][-1]*=0.5
-        domain.m_0+=domain.m_species[Species['Species'][i]] 
+        domain.rho_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+#        if domain.proc_left<0:
+#            domain.rho_species[Species['Species'][i]][0] *=0.5
+#        elif domain.proc_right<0:
+#            domain.rho_species[Species['Species'][i]][-1]*=0.5
+        domain.rho_0+=domain.rho_species[Species['Species'][i]] 
 k,rho,Cv,D=domain.calcProp()
-domain.E=rho*Cv*T*vol
+domain.E=rho*Cv*T
 del k,rho,Cv,D,T
 #print 'Rank %i has initialized'%(rank)
 ###########################################################################
@@ -197,7 +195,7 @@ if rank==0:
     print '################################\n'
 
     print 'Saving data to numpy array files...'
-mpi.save_data(domain, time_max, vol)
+mpi.save_data(domain, time_max)
 
 ###########################################################################
 ## -------------------------------------Solve
@@ -226,7 +224,7 @@ if rank==0:
     print 'Solving:'
 while nt<settings['total_time_steps'] and t<settings['total_time']:
     # First point in calculating combustion propagation speed
-#    T_0=domain.TempFromConserv(vol)
+#    T_0=domain.TempFromConserv()
 #    print 'Rank %i has reached while loop'%(rank)
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
         eta=mpi.compile_var(domain.eta, domain, rank)
@@ -236,7 +234,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
     # Update ghost nodes
     mpi.update_ghosts(domain)
     # Actual solve
-    err,dt=solver.Advance_Soln_Cond(nt, t, vol, Ax)
+    err,dt=solver.Advance_Soln_Cond(nt, t, hx)
     t+=dt
     nt+=1
     # Check all error codes and send the maximum code to all processes
@@ -251,7 +249,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
             input_file.Write_single_line('#################### Solver aborted #######################')
             input_file.Write_single_line('Time step %i, Time elapsed=%f, error code=%i;'%(nt,t,err))
             input_file.Write_single_line('Error codes: 1-time step, 2-Energy, 3-reaction progress, 4-Species balance')
-        mpi.save_data(domain, '{:f}'.format(t*1000), vol)
+        mpi.save_data(domain, '{:f}'.format(t*1000))
         break
     
     # Output data to numpy files
@@ -259,11 +257,11 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
         (output_data_t!=0 and (t>=output_data_t*t_inc and t-dt<output_data_t*t_inc)):
         if rank==0:
             print 'Saving data to numpy array files...'
-        mpi.save_data(domain, '{:f}'.format(t*1000), vol)
+        mpi.save_data(domain, '{:f}'.format(t*1000))
         t_inc+=1
         
     # Change boundary conditions and calculate wave speed
-    T=mpi.compile_var(domain.TempFromConserv(vol), domain)
+    T=mpi.compile_var(domain.TempFromConserv(), domain)
     eta=mpi.compile_var(domain.eta, domain)
     if ((Sources['Ignition'][0]=='eta' and np.amax(eta)>=Sources['Ignition'][1])\
         or (Sources['Ignition'][0]=='Temp' and np.amax(T)>=Sources['Ignition'][1]))\
@@ -275,7 +273,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
             input_file.Write_single_line(str(solver.BCs.BCs['bc_left_E']))
             input_file.fout.write('\n')
             tign=t
-        mpi.save_data(domain, '{:f}'.format(t*1000), vol)
+        mpi.save_data(domain, '{:f}'.format(t*1000))
         BCs_changed=True
         BCs_changed=comm.bcast(BCs_changed, root=0)
     
