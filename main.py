@@ -111,10 +111,12 @@ if rank==0:
     print 'Initializing MPI and solvers...'
     np.save('X', domain.X, False)
 mpi=mpi_routines.MPI_comms(comm, rank, size, Sources, Species)
-err,vol,Ax=mpi.MPI_discretize(domain, vol, Ax)
+err=mpi.MPI_discretize(domain)
 if err>0:
     sys.exit('Problem discretizing domain into processes')
 #print '****Rank: %i, x array : '%(rank)+str(domain.X)
+vol=mpi.split_var(vol,domain)
+Ax=mpi.split_var(Ax,domain)
 
 domain.create_var(Species)
 solver=Solvers.OneDimLineSolve(domain, settings, Sources, copy.deepcopy(BCs), 'Solid', size, comm)

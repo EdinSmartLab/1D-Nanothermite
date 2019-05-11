@@ -44,14 +44,12 @@ class MPI_comms():
         return var_local
     
     # MPI discretization routine
-    def MPI_discretize(self, domain, vol, Ax):
+    def MPI_discretize(self, domain):
         if domain.Nx%self.size!=0:
-            return 1, vol, Ax
+            return 1
         domain.Nx/=self.size
         
         # Divide global variables
-        vol=self.split_var(vol, domain)
-        Ax=self.split_var(Ax, domain)
         domain.X=self.split_var(domain.X, domain)
         domain.dx=self.split_var(domain.dx, domain)
         domain.E=self.split_var(domain.E, domain)
@@ -62,7 +60,7 @@ class MPI_comms():
         if self.rank==(self.size-1):
             domain.proc_right=-1
         
-        return 0, vol, Ax
+        return 0
     
     # Update ghost nodes for processes
     def update_ghosts(self, domain):
