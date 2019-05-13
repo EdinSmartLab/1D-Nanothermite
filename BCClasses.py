@@ -27,7 +27,7 @@ class BCs():
         self.dx=dx
         
     # Energy BCs
-    def Energy(self, E, T_prev, dt, rho, Cv):
+    def Energy(self, E, T_prev, dt, rho, Cv, hx):
         # Left face
         if self.BCs['bc_left_E'][0]=='T':
             E[0]=self.BCs['bc_left_E'][1]*rho[0]*Cv[0]
@@ -41,9 +41,8 @@ class BCs():
                 q=self.BCs['bc_left_E'][1][0]*self.BCs['bc_left_E'][1][1] # h*Tinf
                 Bi=-self.BCs['bc_left_E'][1][0]*T_prev[0] # h*Tij
             
-            E[0]+=(Bi+q)*dt
+            E[0]+=(Bi+q)*dt/hx[0]
             
-        
         # Right face
         if self.BCs['bc_right_E'][0]=='T':
             E[-1]=self.BCs['bc_right_E'][1]*rho[-1]*Cv[-1]
@@ -57,15 +56,15 @@ class BCs():
                 q=self.BCs['bc_right_E'][1][0]*self.BCs['bc_right_E'][1][1] # h*Tinf
                 Bi=-self.BCs['bc_right_E'][1][0]*T_prev[-1] # h*Tij
             
-            E[-1]+=(Bi+q)*dt
+            E[-1]+=(Bi+q)*dt/hx[-1]
             
         # Apply radiation BCs
         if self.BCs['bc_left_rad']!='None':
-            E[0]+=dt*\
+            E[0]+=dt/hx[0]*\
                 self.BCs['bc_left_rad'][0]*5.67*10**(-8)*\
                 (self.BCs['bc_left_rad'][1]**4-T_prev[0]**4)
         if self.BCs['bc_right_rad']!='None':
-            E[-1]+=dt*\
+            E[-1]+=dt/hx[-1]*\
                 self.BCs['bc_right_rad'][0]*5.67*10**(-8)*\
                 (self.BCs['bc_right_rad'][1]**4-T_prev[-1]**4)
             
