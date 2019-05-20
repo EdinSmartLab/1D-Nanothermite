@@ -62,7 +62,7 @@ if rank==0:
     time_begin=time.time()
 
 # Get arguments to script execution
-settings={'MPI_Processes': size}
+settings={}
 BCs={}
 Sources={}
 Species={}
@@ -85,6 +85,7 @@ if rank==0:
     print 'Reading input file...'
 fin=FileClasses.FileIn(input_file, 0)
 fin.Read_Input(settings, Sources, Species, BCs)
+settings['MPI_Processes']=size
 try:
     os.chdir(settings['Output_directory'])
 except:
@@ -156,25 +157,20 @@ if type(settings['Restart']) is int:
         for i in range(len(Species['Species'])):
             rho_species=np.load('rho_'+Species['Species'][i]+'_'+time_max+'.npy')
             domain.rho_species[Species['Species'][i]]=mpi.split_var(rho_species, domain)
-            domain.rho_0+=Species['Specie_IC'][i]
-#        if domain.proc_left<0:
-#            domain.m_0[0] *=0.5
-#        elif domain.proc_right<0:
-#            domain.m_0[-1]*=0.5
         del rho_species, P
     
-if (bool(domain.m_species)) and (type(settings['Restart']) is str):
-    for i in range(len(Species['Species'])):
-#        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-        domain.rho_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-#        if domain.proc_left<0:
-#            domain.rho_species[Species['Species'][i]][0] *=0.5
-#        elif domain.proc_right<0:
-#            domain.rho_species[Species['Species'][i]][-1]*=0.5
-        domain.rho_0+=domain.rho_species[Species['Species'][i]] 
-k,rho,Cv,D=domain.calcProp()
+#if (bool(domain.m_species)) and (type(settings['Restart']) is str):
+#    for i in range(len(Species['Species'])):
+##        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+#        domain.rho_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
+##        if domain.proc_left<0:
+##            domain.rho_species[Species['Species'][i]][0] *=0.5
+##        elif domain.proc_right<0:
+##            domain.rho_species[Species['Species'][i]][-1]*=0.5
+#        domain.rho_0+=domain.rho_species[Species['Species'][i]] 
+k,rho,Cv,Cp,D=domain.calcProp()
 domain.E=rho*Cv*T
-del k,rho,Cv,D,T
+del k,rho,Cv,Cp,D,T
 #print 'Rank %i has initialized'%(rank)
 ###########################################################################
 ## ------------------------Write Input File settings to output directory (only process 0)
@@ -208,11 +204,11 @@ dx=mpi.compile_var(domain.dx, domain)
 output_data_t,output_data_nt=0,0
 if settings['total_time_steps']=='None':
     output_data_t=settings['total_time']/settings['Number_Data_Output']
-    settings['total_time_steps']=settings['total_time']*10**9
+    settings['total_time_steps']=settings['total_time']*10**12
     t_inc=int(t/output_data_t)+1
 elif settings['total_time']=='None':
     output_data_nt=int(settings['total_time_steps']/settings['Number_Data_Output'])
-    settings['total_time']=settings['total_time_steps']*10**9
+    settings['total_time']=settings['total_time_steps']*10**12
     t_inc=0
 
 # Ignition conditions
@@ -227,7 +223,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
 #    T_0=domain.TempFromConserv()
 #    print 'Rank %i has reached while loop'%(rank)
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
-        eta=mpi.compile_var(domain.eta, domain, rank)
+        eta=mpi.compile_var(domain.eta, domain)
         if rank==0:
             v_0=np.sum(eta*dx)
        
@@ -245,6 +241,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
         if rank==0:
             print '#################### Solver aborted #######################'
             print '#################### Error: %i'%(err)
+            print 'Error codes: 1-time step, 2-Energy, 3-reaction progress, 4-Species balance'
             print 'Saving data to numpy array files...'
             input_file.Write_single_line('#################### Solver aborted #######################')
             input_file.Write_single_line('Time step %i, Time elapsed=%f, error code=%i;'%(nt,t,err))
