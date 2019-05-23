@@ -15,22 +15,25 @@
 #	k,Cp,rho: [value]
 #	k,Cp,rho: eta,[value when eta=0],[value when eta=1]
 #	rho,Cp: spec (calculate based on species mass fractions)
+#	gas_constant: specific gas constant for that species (for ideal gas law); J/kg/K
 ######################################################
 
 Length:0.003
-Nodes_x:120
-#k:65
-#Cp:spec
+Nodes_x:600
 rho:3065
-k:65
-Cp:625
+#rho:spec
 #rho:1523
-#k:eta,39,108
-#Cp:eta,600,1100
 #rho:eta,5643,7191
+#Cp:625
+Cp:eta,601,998
+#Cp:spec
+#k:eta,39,108
+k:65
 Darcy_mu:1e-5
-Darcy_perm:1e-10
+#Darcy_perm:0.0
+Darcy_perm:1e-15
 Porosity:0.6
+gas_constant:81.51
 
 ######################################################
 #			Source terms
@@ -45,34 +48,29 @@ Porosity:0.6
 Source_Uniform:None
 Source_Kim:True
 Ea:48000
-A0:4890000
-#dH:vol,63000000000
-dH:rho,4070000
-#dH:rho,4700000
+A0:4.89e6
+dH:rho,2.78e6
 Ignition:eta,0.8
 #Ignition:Temp,1200
 
-#Ea=40000 # [J/mol] Approx value from Kim's paper
-#        A0=1e8 # [1/s] Fudged value
-#        dH=1200 # [J/mol] Value taken from V. Baijot et al., A multi-phase ..., Combustion and Flame, 2017.
-#        dH=30000 #[J/kg] approx from ...
-#  Al/CuO= dH=63000000000, 4070000 [density], 12200000
-#  Al/MoO3- dH=4700000
-# A0= 2200000000, 4890000
+#  Al/CuO: 4.07e6 [density], 2.38e6 [after Al,Alumina,Cu phase changes], 2.78e6 [after Al2O3,Cu phase changes]
+#  Al/MoO3- dH=4.7e6
+# A0= 2200000000, 4.89e6
 
 ######################################################
 #			Species data
 #	Species: Indicate species chemical formula separated by commas
-#	Specie_IC: Initial masses of each species in order specified in 'Species'; value at domain interior
-#	Sepcie_Cp: Specific heats of each species in order specified in 'Species'; not implemented yet
+#	Specie_IC: Initial densities of each species in order specified in 'Species'
+#	Sepcie_Cp: Specific heats of each species in order specified in 'Species'
 #	Commenting this section out will remove mass/momentum transfer from model
 ######################################################
 
 #Species:Al,CuO,Al_2O_3,Cu
 Species:g,s
-Specie_IC:0,1.22e-7
-Specie_rho:1.1,3065
-Specie_Cp:1000,600
+Specie_IC:0,5109
+#Specie_rho:1.1,3065
+#Specie_Cp:1100,600
+#Specie_Cv:800,600
 
 ######################################################
 #			Meshing details
@@ -101,17 +99,18 @@ bias_size_x:0.003
 
 Fo:0.05
 #dt:0.00000001
-dt:1e-9
-total_time_steps:2
-total_time:None
-#total_time:0.002
+dt:1e-10
+#dt:None
+total_time_steps:None
+#total_time:None
+total_time:6e-4
 Time_Scheme:Explicit
 Restart:None
 
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:1
+Number_Data_Output:20
 
 ######################################################
 #			Boundary conditions

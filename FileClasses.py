@@ -16,11 +16,13 @@ This file contains classes for reading and writing files in proper format:
 # Dictionaries containing expected input file data; organized by type
 
 keys_Settings=['MPI_Processes', 'Length','Nodes_x','k','Cp','rho','Darcy_mu', \
-               'Darcy_perm','Porosity', 'gas_constant', 'bias_type_x','bias_size_x']
-               
+               'Darcy_perm','Porosity', 'gas_constant']
+
+keys_mesh=['bias_type_x','bias_size_x']
+
 keys_Sources=['Source_Uniform','Source_Kim','Ea','A0','dH', 'Ignition']
 
-keys_Species=['Species','Specie_rho','Specie_IC','Specie_Cp']
+keys_Species=['Species','Specie_IC']
 
 keys_Time_adv=['Fo','dt','total_time_steps', 'total_time','Restart',\
                'Time_Scheme','Convergence','Max_iterations','Number_Data_Output']
@@ -61,8 +63,7 @@ class FileOut():
     
     def input_writer_cond(self, settings, Sources, Species, BCs):
         self.Write_single_line('Settings:')
-        keys=['MPI_Processes','Length','Nodes_x','k','Cp','rho','Darcy_mu', 'Darcy_perm','Porosity','gas_constant']
-        for i in keys:
+        for i in keys_Settings:
             try:
                 self.fout.write(i)
                 self.fout.write(':')
@@ -72,8 +73,7 @@ class FileOut():
 #            self.fout.write('\n')
         
         self.Write_single_line('\nMeshing details:')
-        keys=['bias_type_x','bias_size_x']
-        for i in keys:
+        for i in keys_mesh:
             self.fout.write(i)
             self.fout.write(':')
             self.Write_single_line(str(settings[i]))
@@ -171,6 +171,13 @@ class FileIn():
                         settings[line[0]]=st.split(line[1], newline_check)[0]
                     else:
                         settings[line[0]]=float(line[1])
+                # Mesh settings
+                elif line[0] in keys_mesh:
+                    if st.find(line[0], 'type')>=0:
+                        settings[line[0]]=st.split(line[1], newline_check)[0]
+                    else:
+                        settings[line[0]]=float(line[1])
+                
                 # Source term info
                 elif line[0] in keys_Sources:
                     if st.find(line[1], 'None')>=0 or st.find(line[1], 'True')>=0\
