@@ -159,18 +159,48 @@ if type(settings['Restart']) is int:
             domain.rho_species[Species['Species'][i]]=mpi.split_var(rho_species, domain)
         del rho_species, P
     
-#if (bool(domain.m_species)) and (type(settings['Restart']) is str):
-#    for i in range(len(Species['Species'])):
-##        domain.m_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-#        domain.rho_species[Species['Species'][i]][:]=Species['Specie_IC'][i]
-##        if domain.proc_left<0:
-##            domain.rho_species[Species['Species'][i]][0] *=0.5
-##        elif domain.proc_right<0:
-##            domain.rho_species[Species['Species'][i]][-1]*=0.5
-#        domain.rho_0+=domain.rho_species[Species['Species'][i]] 
-k,rho,Cv,Cp,D=domain.calcProp()
+# Density
+rho=np.zeros_like(domain.E)
+por=[domain.porosity,(1-domain.porosity)]
+if bool(domain.rho_species):
+    for i in range(len(domain.species_keys)):
+        rho+=por[i]*domain.rho_species[domain.species_keys[i]]
+elif type(domain.rho) is str and (st.find(domain.rho, 'eta')>=0):
+    rho=domain.eta*domain.rho1+(1-domain.eta)*domain.rho0
+else:
+    rho[:]=domain.rho
+
+# Specific heat (Cv)
+Cv=np.empty_like(domain.E)
+if bool(domain.rho_species)and (type(domain.Cv) is str)\
+    and (st.find(domain.Cv, 'spec')>=0):
+    # Reactants
+    Cv_Al=domain.Cp_calc.get_Cv(T,'Al')
+    Cv_CuO=domain.Cp_calc.get_Cv(T,'CuO')
+    # Products (gaseous phase, need to account for Cp vs Cv)
+    Cv_Al2O3=domain.Cp_calc.get_Cv(T,'Al2O3')
+    Cv_Cu=domain.Cp_calc.get_Cv(T,'Cu')
+    
+#    Cv=domain.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+#        +(1-domain.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
+    Cv=(domain.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+        +domain.rho_species['s']*por[1]*(0.186*Cv_Al+0.814*Cv_CuO))/rho
+elif (type(domain.Cv) is str) and (st.find(domain.Cv, 'eta')>=0):
+    Cv=domain.eta*domain.Cv1+(1-domain.eta)*(domain.Cv0)
+#    # Reactants
+#    Cv_Al=domain.Cp_calc.get_Cv(T,'Al')
+#    Cv_CuO=domain.Cp_calc.get_Cv(T,'CuO')
+#    # Products (gaseous phase, need to account for Cp vs Cv)
+#    Cv_Al2O3=domain.Cp_calc.get_Cv(T,'Al2O3')
+#    Cv_Cu=domain.Cp_calc.get_Cv(T,'Cu')
+#    
+#    Cv=domain.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+#        +(1-domain.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
+else:
+    Cv[:]=domain.Cv
+
 domain.E=rho*Cv*T
-del k,rho,Cv,Cp,D,T
+del rho,Cv,T
 #print 'Rank %i has initialized'%(rank)
 ###########################################################################
 ## ------------------------Write Input File settings to output directory (only process 0)
@@ -220,7 +250,7 @@ if rank==0:
     print 'Solving:'
 while nt<settings['total_time_steps'] and t<settings['total_time']:
     # First point in calculating combustion propagation speed
-#    T_0=domain.TempFromConserv()
+#    T_0=domain.calcProp()[0]
 #    print 'Rank %i has reached while loop'%(rank)
     if st.find(Sources['Source_Kim'],'True')>=0 and BCs_changed:
         eta=mpi.compile_var(domain.eta, domain)
@@ -258,7 +288,7 @@ while nt<settings['total_time_steps'] and t<settings['total_time']:
         t_inc+=1
         
     # Change boundary conditions and calculate wave speed
-    T=mpi.compile_var(domain.TempFromConserv(), domain)
+    T=mpi.compile_var(domain.calcProp(domain.T_guess)[0], domain)
     eta=mpi.compile_var(domain.eta, domain)
     if ((Sources['Ignition'][0]=='eta' and np.amax(eta)>=Sources['Ignition'][1])\
         or (Sources['Ignition'][0]=='Temp' and np.amax(T)>=Sources['Ignition'][1]))\

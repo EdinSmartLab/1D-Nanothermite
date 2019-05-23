@@ -26,7 +26,7 @@ Requires:
 import numpy as np
 import string as st
 import copy
-from MatClasses import Diff_Coef
+from MatClasses import Diff_Coef, Cp
 
 class OneDimLine():
     def __init__(self, settings, Species, solver, rank):
@@ -43,6 +43,7 @@ class OneDimLine():
         
         # Variables for conservation equations
         self.E=np.zeros(self.Nx) # Lumped energy
+        self.max_iter=settings['Max_iterations']
         
         # Thermal properties
         self.k=settings['k']
@@ -65,6 +66,7 @@ class OneDimLine():
         self.R=settings['gas_constant']
         
         self.Diff=Diff_Coef()
+        self.Cp_calc=Cp()
         
         # Biasing options       
         self.xbias=[settings['bias_type_x'], settings['bias_size_x']]
@@ -118,23 +120,17 @@ class OneDimLine():
     def create_var(self, Species):
         self.eta=np.zeros_like(self.E) # extent of reaction
         self.P=np.zeros_like(self.E) # pressure
+        self.T_guess=np.zeros_like(self.E)
         
         # Species
-#        self.m_species={}
-#        self.mu_species={}
-#        self.mv_species={}
         self.rho_species={}
-        self.Cp_species={}
         self.rho_0=np.zeros_like(self.E)
+        por=[self.porosity,(1-self.porosity)]
         if bool(self.species_keys):
             i=0
             for key in self.species_keys:
-#                self.m_species[key]=np.zeros_like(self.E)
-#                self.mu_species[key]=np.zeros_like(self.E)
-#                self.mv_species[key]=np.zeros_like(self.E)
                 self.rho_species[key]=np.ones_like(self.E)*Species['Specie_IC'][i]
-                self.Cp_species[key]=np.ones_like(self.E)*Species['Specie_Cp'][i]
-                self.rho_0+=self.rho_species[key]
+                self.rho_0+=por[i]*self.rho_species[key]
                 i+=1
         
           
@@ -149,47 +145,129 @@ class OneDimLine():
         return hx
     
     # Calculate temperature dependent properties
-    def calcProp(self):
+#    def calcProp(self):
+#        k=np.zeros_like(self.eta)
+#        rho=np.zeros_like(self.eta)
+#        Cv=np.zeros_like(self.eta)
+#        Cp=np.zeros_like(self.eta)
+#        D=copy.deepcopy(self.rho_species)
+#        
+#        # Species densities and specific heat
+#        if bool(self.rho_species):
+##            m_tot=np.zeros_like(self.E) # Use rho to be bulk rho
+#            for i in range(len(self.species_keys)):
+##                self.rho_species[self.species_keys[i]]=\
+##                    self.m_species[self.species_keys[i]]/(por[i]*self.CV_vol())
+#                Cv+=self.rho_species[self.species_keys[i]]*self.Cv_species[self.species_keys[i]]
+#                Cp+=self.rho_species[self.species_keys[i]]*self.Cp_species[self.species_keys[i]]
+#                rho+=self.rho_species[self.species_keys[i]]
+#            Cv/=rho
+#            Cp/=rho
+#        
+#        # Calculate properties based on eta or constant
+#        if type(self.k) is str and (st.find(self.k, 'eta')>=0):
+#            k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
+#        elif type(self.k) is float:
+#            k[:]=self.k
+#        if (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
+#            Cv=self.eta*self.Cv1+(1-self.eta)*self.Cv0
+#        elif type(self.Cv) is float:
+#            Cv[:]=self.Cv
+#        if type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
+#            rho=self.eta*self.rho1+(1-self.eta)*self.rho0
+#        elif type(self.rho) is float:
+#            rho[:]=self.rho
+#        
+#        # Mass diffusion coefficient; g, s
+#        if bool(D):
+#            for i in self.species_keys:
+#                D[i][:]=self.Diff.get_Diff(300,i)
+#        
+#        
+#        return k, rho, Cv, Cp, D
+    
+    # Calculate temperature and thermodynamic properties
+    def calcProp(self, T_guess=300):
         k=np.zeros_like(self.eta)
         rho=np.zeros_like(self.eta)
         Cv=np.zeros_like(self.eta)
-        D=copy.deepcopy(self.m_species)
-        
-        # Species densities and specific heat
+        Cp=np.zeros_like(self.eta)
+        D=copy.deepcopy(self.rho_species)
         por=[self.porosity,(1-self.porosity)]
-        if bool(self.m_species):
-#            m_tot=np.zeros_like(self.E) # Use rho to be bulk rho
-            for i in range(len(self.species_keys)):
-#                self.rho_species[self.species_keys[i]]=\
-#                    self.m_species[self.species_keys[i]]/(por[i]*self.CV_vol())
-                Cv+=self.rho_species[self.species_keys[i]]*self.Cp_species[self.species_keys[i]]
-                rho+=self.rho_species[self.species_keys[i]]
-            Cv/=rho
         
-        # Calculate properties based on eta or constant
+        # Density
+        if bool(self.rho_species):
+            for i in range(len(self.species_keys)):
+                rho+=por[i]*self.rho_species[self.species_keys[i]]
+        elif type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
+            rho=self.eta*self.rho1+(1-self.eta)*self.rho0
+        else:
+            rho[:]=self.rho
+        
+        # Specific heat (Cv)
+        if bool(self.rho_species) and (type(self.Cv) is str)\
+            and (st.find(self.Cv, 'spec')>=0):
+            T_0=np.ones_like(self.eta)
+            T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
+            i=0
+            while np.amax(np.abs(T_0-T)/T)>0.0001 and i<self.max_iter:
+                T_0=T.copy()
+                # Reactants
+                Cv_Al=self.Cp_calc.get_Cv(T_0,'Al')
+                Cv_CuO=self.Cp_calc.get_Cv(T_0,'CuO')
+                # Products (gaseous phase, need to account for Cp vs Cv)
+                Cv_Al2O3=self.Cp_calc.get_Cv(T_0,'Al2O3')
+                Cv_Cu=self.Cp_calc.get_Cv(T_0,'Cu')
+                
+#                Cv=self.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+#                    +(1-self.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
+                
+                Cv=(self.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+                    +self.rho_species['s']*por[1]*(0.186*Cv_Al+0.814*Cv_CuO))/rho
+                
+                T=self.E/Cv/rho
+                i+=1
+        elif (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
+            Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
+            T=self.E/Cv/rho
+#            T_0=np.ones_like(self.eta)
+#            T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
+#            i=0
+#            while np.amax(np.abs(T_0-T)/T)>0.01 and i<self.max_iter:
+#                T_0=T.copy()
+#                # Reactants
+#                Cv_Al=self.Cp_calc.get_Cv(T_0,'Al')
+#                Cv_CuO=self.Cp_calc.get_Cv(T_0,'CuO')
+#                # Products (gaseous phase, need to account for Cp vs Cv)
+#                Cv_Al2O3=self.Cp_calc.get_Cv(T_0,'Al2O3')
+#                Cv_Cu=self.Cp_calc.get_Cv(T_0,'Cu')
+#                
+#                Cv=self.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+#                    +(1-self.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
+#                
+#                T=self.E/Cv/rho
+#                i+=1
+#                if self.rank==0:
+#                    print(np.amin(T),np.amax(T))
+        else:
+            Cv[:]=self.Cv
+            T=self.E/Cv/rho
+        
+        # Specific heat (Cp) and diffusion coefficients
+        if bool(self.rho_species):
+            for i in range(len(self.species_keys)):
+#                Cp+=self.rho_species[self.species_keys[i]]*por[i]*self.Cp_species[self.species_keys[i]]/rho
+                D[self.species_keys[i]][:]=self.Diff.get_Diff(T,self.species_keys[i])
+            # Products (only these have gas phases)
+            Cv_Al2O3=self.Cp_calc.get_Cp(T,'Al2O3')
+            Cv_Cu=self.Cp_calc.get_Cp(T,'Cu')
+            
+            Cp=self.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
+        
+        # Thermal conductivity
         if type(self.k) is str and (st.find(self.k, 'eta')>=0):
             k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
         elif type(self.k) is float:
             k[:]=self.k
-        if (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
-            Cv=self.eta*self.Cv1+(1-self.eta)*self.Cv0
-        elif type(self.Cv) is float:
-            Cv[:]=self.Cv
-        if type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
-            rho=self.eta*self.rho1+(1-self.eta)*self.rho0
-        elif type(self.rho) is float:
-            rho[:]=self.rho
         
-        # Mass diffusion coefficient; Al, CuO, Al2O3, Cu
-        if bool(D):
-            for i in self.species_keys:
-#                D[i][:,;]=self.Diff.get_Diff(300,i)
-                D[i][:]=0
-        
-        
-        return k, rho, Cv, D
-    
-    # Calculate temperature from energy
-    def TempFromConserv(self):
-        k,rho,Cv,D=self.calcProp()
-        return self.E/Cv/rho
+        return T, k, rho, Cv, Cp, D
