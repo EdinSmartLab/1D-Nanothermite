@@ -160,6 +160,6 @@ for time in times:
             
         
     print 'Processed '+time
-    print '     Mass balance residual: %8f'%(np.amin(Y_tot)*10**6)
+    print '     Mass balance residual: %8f'%(np.amin(Y_tot))
 
 print '\nPost-processing complete'

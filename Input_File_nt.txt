@@ -31,9 +31,10 @@ Cp:eta,601,998
 k:65
 Darcy_mu:1e-5
 #Darcy_perm:0.0
-Darcy_perm:1e-15
+Darcy_perm:1e-17
 Porosity:0.6
 gas_constant:81.51
+#81.51 For alumina, 107.93 alumina and copper
 
 ######################################################
 #			Source terms
@@ -67,7 +68,7 @@ Ignition:eta,0.8
 
 #Species:Al,CuO,Al_2O_3,Cu
 Species:g,s
-Specie_IC:0,5109
+Specie_IC:0,3065
 #Specie_rho:1.1,3065
 #Specie_Cp:1100,600
 #Specie_Cv:800,600
@@ -103,14 +104,14 @@ dt:1e-10
 #dt:None
 total_time_steps:None
 #total_time:None
-total_time:6e-4
+total_time:2e-4
 Time_Scheme:Explicit
 Restart:None
 
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:20
+Number_Data_Output:15
 
 ######################################################
 #			Boundary conditions

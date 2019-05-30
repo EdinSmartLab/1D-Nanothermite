@@ -23,6 +23,7 @@ rho:5000
 Darcy_mu:1e-5
 Darcy_perm:1e-10
 Porosity:0.6
+gas_constant:20
 
 ######################################################
 #			Source terms
@@ -58,7 +59,7 @@ bias_size_x:0.003
 
 Fo:0.2
 dt:None
-total_time_steps:10000
+total_time_steps:1
 total_time:None
 Time_Scheme:Explicit
 Restart:None
@@ -66,7 +67,7 @@ Restart:None
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:10
+Number_Data_Output:1
 
 ######################################################
 #			Boundary conditions

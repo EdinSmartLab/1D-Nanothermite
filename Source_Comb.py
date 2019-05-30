@@ -37,7 +37,7 @@ class Source_terms():
     # Uniform volumetric generation
     def Source_Uniform(self, Q):
         
-        return Q*V
+        return Q
     
     # Calculate source term for combustion based on
     # K. Kim, "Computational Modeling of Combustion Wave in Nanoscale Thermite Reaction",
@@ -48,7 +48,6 @@ class Source_terms():
         
         # Clipping to 0
 #        eta[eta<10**(-10)]=0
-        
         if st.find(self.dH[0], 'vol')>=0:
             return self.dH[1]*detadt, detadt
         else:

@@ -135,7 +135,7 @@ class MPI_comms():
     # Function to save data to npy files
     def save_data(self, Domain, time):
 #    def save_data(self, Domain, time):
-        T=self.compile_var(Domain.TempFromConserv(), Domain)
+        T=self.compile_var(Domain.calcProp(Domain.T_guess)[0], Domain)
         np.save('T_'+time, T, False)
         # Kim source term
         if st.find(self.Sources['Source_Kim'],'True')>=0:
