@@ -31,7 +31,7 @@ Cp:eta,601,998
 k:65
 Darcy_mu:1e-5
 #Darcy_perm:0.0
-Darcy_perm:1e-17
+Particle_diam:40e-9
 Porosity:0.6
 gas_constant:81.51
 #81.51 For alumina, 107.93 alumina and copper
@@ -92,7 +92,7 @@ bias_size_x:0.003
 #	'Fo' (in (0, 1.0)) OR 'dt' must be specified; if both are, then smallest will be used; Fo stability check to 1.0
 #	'Fo' in (0,1.0) for planar, (0, 50.0) for axisymmetric (experimentally determined for this code)
 #	'total_time_steps' OR 'total_time' must be specified; if both, then 'total_time_steps' will be used
-#	Time schemes: Explicit
+#	Time schemes: Explicit OR Strang_split [IN PROGRESS]
 #	'Convergence' and 'Max_iterations' are for implicit solver
 #	Number_Data_Output: Number of T variable files to be output over the time/number of steps specified
 #	'Restart': None OR a number sequence in T data file name (will restart at this time)
@@ -104,14 +104,14 @@ dt:1e-10
 #dt:None
 total_time_steps:None
 #total_time:None
-total_time:2e-4
+total_time:3e-4
 Time_Scheme:Explicit
 Restart:None
 
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:15
+Number_Data_Output:30
 
 ######################################################
 #			Boundary conditions

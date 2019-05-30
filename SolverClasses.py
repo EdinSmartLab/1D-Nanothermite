@@ -167,14 +167,10 @@ class OneDimLineSolve():
                 self.Domain.rho_species[species[1]]=rho_0[species[1]].copy()
                 
                 # Source terms
-        #        dm=deta*dt_strang[i]*(m_c[species[0]]+m_c[species[1]])
-    #            dm=np.zeros_like(deta)
-                dm=deta*dt_strang[i]*(self.Domain.rho_0)
-    #            dm[dm<10**(-9)]=0
+                dm0,dm1=self.get_source.Source_mass(deta, self.Domain.porosity, self.Domain.rho_0)
     #            print '     Mass generated: %f, %f'%(np.amax(dm)*10**(9),np.amin(dm)*10**(9))
-        #        (m_c[species[0]]+m_c[species[1]])
-                self.Domain.rho_species[species[0]]+=dm/self.Domain.porosity
-                self.Domain.rho_species[species[1]]-=dm/(1-self.Domain.porosity)
+                self.Domain.rho_species[species[0]]+=dm0*dt_strang[i]
+                self.Domain.rho_species[species[1]]-=dm1*dt_strang[i]
                         
                 max_Y=max(np.amax(self.Domain.rho_species[species[0]]),\
                           np.amax(self.Domain.rho_species[species[1]]))
@@ -206,29 +202,6 @@ class OneDimLineSolve():
     #        # Porous medium losses
     #        self.Domain.mu_species[species[0]]-=mu/perm*u*dt_strang[i]
     #        
-    #        ###################################################################
-    #        # Conservation of Momentum (y direction; gas)
-    #        ###################################################################
-    #        # Fluxes
-    #        self.Domain.mv_species[species[0]][:,1:]+=Ax[:,1:]*dt_strang[i]\
-    #            *0.5*(mv_c[species[0]][:,1:]+mv_c[species[0]][:,:-1])*0.5*(u[:,1:]+u[:,:-1])
-    #        self.Domain.mv_species[species[0]][1:,:]+=Ay[1:,:]*dt_strang[i]\
-    #            *0.5*(mv_c[species[0]][1:,:]+mv_c[species[0]][:-1,:])*0.5*(v[1:,:]+v[:-1,:])
-    #        self.Domain.mv_species[species[0]][:,:-1]-=Ax[:,:-1]*dt_strang[i]\
-    #            *0.5*(mv_c[species[0]][:,1:]+mv_c[species[0]][:,:-1])*0.5*(u[:,1:]+u[:,:-1])
-    #        self.Domain.mv_species[species[0]][:-1,:]-=Ay[:-1,:]*dt_strang[i]\
-    #            *0.5*(mv_c[species[0]][1:,:]+mv_c[species[0]][:-1,:])*0.5*(v[1:,:]+v[:-1,:])
-    #        
-    #        # Pressure
-    #        self.Domain.mv_species[species[0]][1:,:]+=Ay[1:,:]*dt_strang[i]\
-    #            *0.5*(self.Domain.P[1:,:]+self.Domain.P[:-1,:])
-    #        self.Domain.mv_species[species[0]][:-1,:]-=Ay[:-1,:]*dt_strang[i]\
-    #            *0.5*(self.Domain.P[1:,:]+self.Domain.P[:-1,:])
-    #                
-    #        # Porous medium losses
-    #        self.Domain.mu_species[species[0]]-=mu/perm*v*dt_strang[i]
-            
-            
             ###################################################################
             # Conservation of species
             ###################################################################
