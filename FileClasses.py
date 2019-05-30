@@ -16,7 +16,7 @@ This file contains classes for reading and writing files in proper format:
 # Dictionaries containing expected input file data; organized by type
 
 keys_Settings=['MPI_Processes', 'Length','Nodes_x','k','Cp','rho','Darcy_mu', \
-               'Darcy_perm','Porosity', 'gas_constant']
+               'Particle_diam','Porosity', 'gas_constant']
 
 keys_mesh=['bias_type_x','bias_size_x']
 

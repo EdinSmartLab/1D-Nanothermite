@@ -62,7 +62,8 @@ class OneDimLine():
             self.k0=float(line[1])
             self.k1=float(line[2])
         self.mu=settings['Darcy_mu']
-        self.perm=settings['Darcy_perm']
+        self.perm=self.porosity**3*settings['Particle_diam']**2\
+            /(72*(1-self.porosity)**2)
         self.R=settings['gas_constant']
         
         self.Diff=Diff_Coef()
