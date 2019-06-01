@@ -12,7 +12,7 @@
 ######################################################
 #			Settings
 #	Properties are in standard units J, kg, K, W, m
-#	k,Cp,rho: [value]
+#	k,Cp,rho: [value]; for 'rho', is TMD or actual density
 #	k,Cp,rho: eta,[value when eta=0],[value when eta=1]
 #	rho,Cp: spec (calculate based on species mass fractions)
 #	gas_constant: specific gas constant for that species (for ideal gas law); J/kg/K
@@ -20,7 +20,7 @@
 
 Length:0.003
 Nodes_x:600
-rho:3065
+rho:5109
 #rho:spec
 #rho:1523
 #rho:eta,5643,7191

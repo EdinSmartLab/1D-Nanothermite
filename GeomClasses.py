@@ -197,17 +197,16 @@ class OneDimLine():
         por=[self.porosity,(1-self.porosity)]
         
         # Density
-        if bool(self.rho_species):
+        if (type(self.rho) is str) and (st.find(self.rho, 'spec')>=0):
             for i in range(len(self.species_keys)):
                 rho+=por[i]*self.rho_species[self.species_keys[i]]
         elif type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
             rho=self.eta*self.rho1+(1-self.eta)*self.rho0
         else:
-            rho[:]=self.rho
+            rho[:]=self.rho*(1-self.porosity)
         
         # Specific heat (Cv)
-        if bool(self.rho_species) and (type(self.Cv) is str)\
-            and (st.find(self.Cv, 'spec')>=0):
+        if (type(self.Cv) is str) and (st.find(self.Cv, 'spec')>=0):
             T_0=np.ones_like(self.eta)
             T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
             i=0
@@ -267,6 +266,7 @@ class OneDimLine():
             
 #            Cp=self.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
             Cp=(0.351*Cv_Al2O3+0.649*Cv_Cu)
+#            Cp=self.Cp_calc.get_Cp(T, 'Ar')
 #            Cp=Cv
         
         # Thermal conductivity

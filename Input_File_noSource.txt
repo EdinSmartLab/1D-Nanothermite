@@ -21,8 +21,8 @@ k:70
 Cp:800
 rho:5000
 Darcy_mu:1e-5
-Darcy_perm:1e-10
-Porosity:0.6
+Particle_diam:40e-9
+Porosity:0.0
 gas_constant:20
 
 ######################################################
