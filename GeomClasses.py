@@ -128,11 +128,10 @@ class OneDimLine():
         self.rho_0=np.zeros_like(self.E)
         por=[self.porosity,(1-self.porosity)]
         if bool(self.species_keys):
-            i=0
-            for key in self.species_keys:
-                self.rho_species[key]=np.ones_like(self.E)*Species['Specie_IC'][i]
-                self.rho_0+=por[i]*self.rho_species[key]
-                i+=1
+            for i in range(len(self.species_keys)):
+                self.rho_species[self.species_keys[i]]=np.ones_like(self.E)\
+                    *Species['Specie_IC'][i]
+                self.rho_0+=por[i]*self.rho_species[self.species_keys[i]]
         
           
     # Calculate and return dimensions of CV
@@ -222,33 +221,14 @@ class OneDimLine():
 #                Cv=self.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
 #                    +(1-self.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
                 
-                Cv=(self.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
-                    +self.rho_species['s']*por[1]*(0.186*Cv_Al+0.814*Cv_CuO))/rho
+                Cv=(self.rho_species[self.species_keys[0]]*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
+                    +self.rho_species[self.species_keys[1]]*por[1]*(0.186*Cv_Al+0.814*Cv_CuO))/rho
                 
                 T=self.E/Cv/rho
                 i+=1
         elif (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
             Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
             T=self.E/Cv/rho
-#            T_0=np.ones_like(self.eta)
-#            T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
-#            i=0
-#            while np.amax(np.abs(T_0-T)/T)>0.01 and i<self.max_iter:
-#                T_0=T.copy()
-#                # Reactants
-#                Cv_Al=self.Cp_calc.get_Cv(T_0,'Al')
-#                Cv_CuO=self.Cp_calc.get_Cv(T_0,'CuO')
-#                # Products (gaseous phase, need to account for Cp vs Cv)
-#                Cv_Al2O3=self.Cp_calc.get_Cv(T_0,'Al2O3')
-#                Cv_Cu=self.Cp_calc.get_Cv(T_0,'Cu')
-#                
-#                Cv=self.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
-#                    +(1-self.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
-#                
-#                T=self.E/Cv/rho
-#                i+=1
-#                if self.rank==0:
-#                    print(np.amin(T),np.amax(T))
         else:
             Cv[:]=self.Cv
             T=self.E/Cv/rho
@@ -259,15 +239,20 @@ class OneDimLine():
 #                Cp+=self.rho_species[self.species_keys[i]]*por[i]*self.Cp_species[self.species_keys[i]]/rho
                 D[self.species_keys[i]][:]=self.Diff.get_Diff(T,self.species_keys[i])
             # Products (only these have gas phases)
-#            Cv_Al2O3=self.Cp_calc.get_Cp(T,'Al2O3')
-            Cv_Al2O3=self.Cp_calc.get_Cp(np.ones_like(T)*2327,'Al2O3')
-#            Cv_Cu=self.Cp_calc.get_Cp(T,'Cu')
-            Cv_Cu=self.Cp_calc.get_Cp(np.ones_like(T)*2843,'Cu')
-            
-#            Cp=self.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
-            Cp=(0.351*Cv_Al2O3+0.649*Cv_Cu)
-#            Cp=self.Cp_calc.get_Cp(T, 'Ar')
-#            Cp=Cv
+            if self.species_keys[0]=='Ar':
+                # Argon as only gas specie
+                Cp=self.Cp_calc.get_Cp(T, 'Ar')
+                Cp=Cv
+            else:
+                # Special mix of products, no argon or air present
+#                Cv_Al2O3=self.Cp_calc.get_Cp(T,'Al2O3')
+                Cv_Al2O3=self.Cp_calc.get_Cp(np.ones_like(T)*2327,'Al2O3')
+#                Cv_Cu=self.Cp_calc.get_Cp(T,'Cu')
+                Cv_Cu=self.Cp_calc.get_Cp(np.ones_like(T)*2843,'Cu')
+                
+#                Cp=self.rho_species[self.species_keys[0]]*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
+                Cp=(0.351*Cv_Al2O3+0.649*Cv_Cu)
+                
         
         # Thermal conductivity
         if type(self.k) is str and (st.find(self.k, 'eta')>=0):

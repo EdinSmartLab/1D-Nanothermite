@@ -135,8 +135,8 @@ class OneDimLineSolve():
             if bool(self.Domain.rho_species):
                 
                 # Adjust pressure
-    #            print '     Gas density: %f, %f'%(np.amax(rho_spec['g']),np.amin(rho_spec['g']))
-                self.Domain.P=rho_spec['g']*self.Domain.R*T_c
+    #            print '     Gas density: %f, %f'%(np.amax(rho_spec[species[0]]),np.amin(rho_spec[species[0]]))
+                self.Domain.P=rho_spec[species[0]]*self.Domain.R*T_c
     #            self.BCs.P(self.Domain.P)
                 
                 # Use Darcy's law to directly calculate the velocities at the faces
