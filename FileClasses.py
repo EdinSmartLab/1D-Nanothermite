@@ -74,10 +74,13 @@ class FileOut():
         
         self.Write_single_line('\nMeshing details:')
         for i in keys_mesh:
-            self.fout.write(i)
-            self.fout.write(':')
-            self.Write_single_line(str(settings[i]))
-#            self.fout.write('\n')
+            try:
+                self.fout.write(i)
+                self.fout.write(':')
+                self.Write_single_line(str(settings[i]))
+    #            self.fout.write('\n')
+            except:
+                continue
         
         if bool(Species):
             self.Write_single_line('\nSpecies info:')
@@ -102,9 +105,12 @@ class FileOut():
             
         self.Write_single_line('\nTime advancement:')
         for i in keys_Time_adv:
-            self.fout.write(i)
-            self.fout.write(':')
-            self.Write_single_line(str(settings[i]))
+            try:
+                self.fout.write(i)
+                self.fout.write(':')
+                self.Write_single_line(str(settings[i]))
+            except:
+                continue
         self.fout.write('Output_directory')
         self.fout.write(':')
         self.Write_single_line(str(settings['Output_directory']))
