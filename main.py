@@ -159,45 +159,7 @@ if type(settings['Restart']) is int:
             domain.rho_species[Species['Species'][i]]=mpi.split_var(rho_species, domain)
         del rho_species, P
     
-# Density
-rho=np.zeros_like(domain.E)
-por=[domain.porosity,(1-domain.porosity)]
-if bool(domain.rho_species):
-    for i in range(len(domain.species_keys)):
-        rho+=por[i]*domain.rho_species[domain.species_keys[i]]
-elif type(domain.rho) is str and (st.find(domain.rho, 'eta')>=0):
-    rho=domain.eta*domain.rho1+(1-domain.eta)*domain.rho0
-else:
-    rho[:]=domain.rho
-
-# Specific heat (Cv)
-Cv=np.empty_like(domain.E)
-if bool(domain.rho_species)and (type(domain.Cv) is str)\
-    and (st.find(domain.Cv, 'spec')>=0):
-    # Reactants
-    Cv_Al=domain.Cp_calc.get_Cv(T,'Al')
-    Cv_CuO=domain.Cp_calc.get_Cv(T,'CuO')
-    # Products (gaseous phase, need to account for Cp vs Cv)
-    Cv_Al2O3=domain.Cp_calc.get_Cv(T,'Al2O3')
-    Cv_Cu=domain.Cp_calc.get_Cv(T,'Cu')
-    
-#    Cv=domain.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
-#        +(1-domain.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
-    Cv=(domain.rho_species['g']*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
-        +domain.rho_species['s']*por[1]*(0.186*Cv_Al+0.814*Cv_CuO))/rho
-elif (type(domain.Cv) is str) and (st.find(domain.Cv, 'eta')>=0):
-    Cv=domain.eta*domain.Cv1+(1-domain.eta)*(domain.Cv0)
-#    # Reactants
-#    Cv_Al=domain.Cp_calc.get_Cv(T,'Al')
-#    Cv_CuO=domain.Cp_calc.get_Cv(T,'CuO')
-#    # Products (gaseous phase, need to account for Cp vs Cv)
-#    Cv_Al2O3=domain.Cp_calc.get_Cv(T,'Al2O3')
-#    Cv_Cu=domain.Cp_calc.get_Cv(T,'Cu')
-#    
-#    Cv=domain.eta*(0.351*Cv_Al2O3+0.649*Cv_Cu)\
-#        +(1-domain.eta)*(0.186*Cv_Al+0.814*Cv_CuO)
-else:
-    Cv[:]=domain.Cv
+rho,Cv=domain.calcProp(init=True)
 
 domain.E=rho*Cv*T
 del rho,Cv,T

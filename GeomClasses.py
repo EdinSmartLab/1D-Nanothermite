@@ -44,6 +44,7 @@ class OneDimLine():
         # Variables for conservation equations
         self.E=np.zeros(self.Nx) # Lumped energy
         self.max_iter=settings['Max_iterations']
+        self.conv=settings['Convergence']
         
         # Thermal properties
         self.k=settings['k']
@@ -187,7 +188,8 @@ class OneDimLine():
 #        return k, rho, Cv, Cp, D
     
     # Calculate temperature and thermodynamic properties
-    def calcProp(self, T_guess=300):
+    # Have it return only rho_s; where is it used?
+    def calcProp(self, T_guess=300, init=False):
         k=np.zeros_like(self.eta)
         rho=np.zeros_like(self.eta)
         Cv=np.zeros_like(self.eta)
@@ -209,7 +211,7 @@ class OneDimLine():
             T_0=np.ones_like(self.eta)
             T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
             i=0
-            while np.amax(np.abs(T_0-T)/T)>0.0001 and i<self.max_iter:
+            while np.amax(np.abs(T_0-T)/T)>self.conv and i<self.max_iter:
                 T_0=T.copy()
                 # Reactants
                 Cv_Al=self.Cp_calc.get_Cv(T_0,'Al')
@@ -226,6 +228,8 @@ class OneDimLine():
                 
                 T=self.E/Cv/rho
                 i+=1
+                if init:
+                    break
         elif (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
             Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
             T=self.E/Cv/rho
@@ -242,7 +246,6 @@ class OneDimLine():
             if self.species_keys[0]=='Ar':
                 # Argon as only gas specie
                 Cp=self.Cp_calc.get_Cp(T, 'Ar')
-                Cp=Cv
             else:
                 # Special mix of products, no argon or air present
 #                Cv_Al2O3=self.Cp_calc.get_Cp(T,'Al2O3')
@@ -252,6 +255,7 @@ class OneDimLine():
                 
 #                Cp=self.rho_species[self.species_keys[0]]*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
                 Cp=(0.351*Cv_Al2O3+0.649*Cv_Cu)
+#                Cp=Cv
                 
         
         # Thermal conductivity
@@ -260,4 +264,7 @@ class OneDimLine():
         elif type(self.k) is float:
             k[:]=self.k
         
-        return T, k, rho, Cv, Cp, D
+        if init:
+            return rho, Cv
+        else:
+            return T, k, rho, Cv, Cp, D
