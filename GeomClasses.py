@@ -195,6 +195,9 @@ class OneDimLine():
         Cv=np.zeros_like(self.eta)
         Cp=np.zeros_like(self.eta)
         D=copy.deepcopy(self.rho_species)
+        
+#        # EXPERIMENTAL: Change porosity as function of eta
+#        self.porosity
         por=[self.porosity,(1-self.porosity)]
         
         # Density
@@ -232,6 +235,8 @@ class OneDimLine():
                     break
         elif (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
             Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
+#            Cv=self.eta*self.Cv1+(1-self.eta)*\
+#            (self.Cv0*(1-self.porosity)+(520.0-8.314*1000/39.948)*self.porosity)
             T=self.E/Cv/rho
         else:
             Cv[:]=self.Cv
@@ -239,9 +244,9 @@ class OneDimLine():
         
         # Specific heat (Cp) and diffusion coefficients (Dij)
         if bool(self.rho_species):
-            for i in range(len(self.species_keys)):
-#                Cp+=self.rho_species[self.species_keys[i]]*por[i]*self.Cp_species[self.species_keys[i]]/rho
-                D[self.species_keys[i]][:]=self.Diff.get_Diff(T,self.species_keys[i])
+#            for i in range(len(self.species_keys)):
+##                Cp+=self.rho_species[self.species_keys[i]]*por[i]*self.Cp_species[self.species_keys[i]]/rho
+#                D[self.species_keys[i]][:]=self.Diff.get_Diff(T,self.species_keys[i])
             # Products (only these have gas phases)
             if self.species_keys[0]=='Ar':
                 # Argon as only gas specie
