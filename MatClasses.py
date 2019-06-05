@@ -61,6 +61,7 @@ class Cp():
         
         # Solid phase
         # Polynomial fit coefficients
+        # Excel regression of JANAF data
         a0=11.674
         a1=0.075938
         a2=-1.5457e-4
@@ -86,6 +87,7 @@ class Cp():
         
         # Solid phase
         # Coefficicents for polynomial fit
+        # Excel regression of JANAF data
         a0=17.34
         a1=2.8436e-1
         a2=-2.7874e-4
@@ -110,6 +112,7 @@ class Cp():
 #        a4=-8.6691e-12
         
         # Coefficicents for polynomial fit (CuO (g); up to 6000 K)
+        # Excel regression of JANAF data
         a0=30.821
         a1=2.6747e-2
         a2=-4.4523e-5
@@ -123,6 +126,7 @@ class Cp():
         Cp=np.zeros_like(T)
         # Solid phase
         # Coefficicents for polynomial fit
+        # Excel regression of JANAF data
         a0=11.674
         a1=0.075938
         a2=-1.5457e-4
@@ -146,6 +150,34 @@ class Cp():
             return np.ones_like(T)*520.0
         else:
             return np.ones_like(T)*520.0-8.314*1000/self.Ar_mol_mass
+        
+    def Air(self, T, typ):
+        molar_mass=28.97
+        Cp=np.zeros_like(T)
+        
+#        # Coefficicents for polynomial fit (273-1800 K)
+#        # Taken from Cengel and Boles, Thermodynamics: An engineering approach
+#        a0=28.11
+#        a1=0.1967e-2
+#        a2=0.4802e-5
+#        a3=-1.966e-9
+#        
+#        Cp=(a0+a1*T+a2*T**2+a3*T**3)/molar_mass*1000
+        
+        # Coefficicents for polynomial fit (300-3000 K)
+        # Excel regression of data taken from Bergman et al., Fundamentals of Heat and mass transfer
+        a0=1.0718e3
+        a1=-4.664e-1
+        a2=1.0584e-3
+        a3=-6.6196e-7
+        a4=1.4070e-10
+        
+        Cp=a0+a1*T+a2*T**2+a3*T**3+a4*T**4
+        
+        if typ=='Cp':
+            return Cp
+        else:
+            return Cp-8.314*1000/molar_mass
     
     # Main function to calculate specific heat at constant pressure
     # Points to correct function based on specie
