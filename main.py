@@ -127,7 +127,7 @@ time_max='0.000000'
 T=300*np.ones_like(domain.E)
 #T=np.linspace(300, 600, len(domain.E))
 # Restart from previous data
-if type(settings['Restart']) is int:
+if st.find(settings['Restart'], 'None')<0:
     times=os.listdir('.')
     i=len(times)
     if i<2:
@@ -159,7 +159,7 @@ if type(settings['Restart']) is int:
             domain.rho_species[Species['Species'][i]]=mpi.split_var(rho_species, domain)
         del rho_species, P
     
-rho,Cv=domain.calcProp(init=True)
+rho,Cv=domain.calcProp(T_guess=T, init=True)
 
 domain.E=rho*Cv*T
 del rho,Cv,T

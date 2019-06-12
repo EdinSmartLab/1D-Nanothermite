@@ -125,6 +125,9 @@ class OneDimLineSolve():
                 if self.source_unif!='None':
                     E_unif      = self.source_unif
                 if self.source_Kim=='True':
+#                    if bool(self.Domain.rho_species):
+#                        E_kim, deta =self.get_source.Source_Comb_Kim(rho_spec[species[1]], T_c, self.Domain.eta, dt_strang[i])
+#                    else:
                     E_kim, deta =self.get_source.Source_Comb_Kim(rho, T_c, self.Domain.eta, dt_strang[i])
         #            E_kim, deta =self.get_source.Source_Comb_Umbrajkar(rho, T_c, self.Domain.eta, dt_strang[i])
             
@@ -135,9 +138,9 @@ class OneDimLineSolve():
             if bool(self.Domain.rho_species):
                 
                 # Adjust pressure
-    #            print '     Gas density: %f, %f'%(np.amax(rho_spec[species[0]]),np.amin(rho_spec[species[0]]))
                 self.Domain.P=rho_spec[species[0]]*self.Domain.R*T_c
-    #            self.BCs.P(self.Domain.P)
+#                self.Domain.P=1.8*self.Domain.R*T_c
+#                self.Domain.P=(rho_spec[species[0]]*self.Domain.R+1.8*208.11)*T_c
                 
                 # Use Darcy's law to directly calculate the velocities at the faces
                 flx=np.zeros_like(self.Domain.P)
@@ -304,8 +307,8 @@ class OneDimLineSolve():
             return 2, dt
         elif (np.amax(self.Domain.eta)>1.0) or (np.amin(self.Domain.eta)<-10**(-9)):
             return 3, dt
-#        elif bool(self.Domain.rho_species) and ((min_Y<-10**(-7))\
-#                  or np.isnan(max_Y)):
-#            return 4, dt
+        elif bool(self.Domain.rho_species) and ((min_Y<-10)\
+                  or np.isnan(max_Y)):
+            return 4, dt
         else:
             return 0, dt

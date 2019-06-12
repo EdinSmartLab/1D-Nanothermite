@@ -88,8 +88,7 @@ class Source_terms():
     
     # Calculate mass source term
     def Source_mass(self, deta, por, m_0):
-#        dm=deta*dt_strang[i]*(m_c[species[0]]+m_c[species[1]])
-#        dm=np.zeros_like(deta)
+#        dm0=np.zeros_like(deta)
         dm0=deta*(m_0)/por
         dm1=deta*(m_0)/(1-por)
 #        dm[dm<10**(-9)]=0

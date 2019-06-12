@@ -20,8 +20,8 @@
 
 Length:0.003
 Nodes_x:600
-rho:5109
-#rho:spec
+#rho:5109
+rho:spec
 #rho:1523
 #rho:eta,5643,7191
 #Cp:625
@@ -30,11 +30,10 @@ Cp:eta,601,998
 #k:eta,39,108
 k:65
 Darcy_mu:1e-5
-#Darcy_perm:0.0
-Particle_diam:40e-9
-Porosity:0.6
-gas_constant:81.51
-#81.51 For alumina, 107.93 alumina and copper
+Particle_diam:70e-9
+Porosity:0.8
+gas_constant:107.93
+#81.51 For alumina, 107.93 alumina and copper, 208.11 for Ar, 
 
 ######################################################
 #			Source terms
@@ -48,7 +47,7 @@ gas_constant:81.51
 
 Source_Uniform:None
 Source_Kim:True
-Ea:48000
+Ea:60000
 A0:4.89e6
 dH:rho,2.78e6
 Ignition:eta,0.8
@@ -57,6 +56,7 @@ Ignition:eta,0.8
 #  Al/CuO: 4.07e6 [density], 2.38e6 [after Al,Alumina,Cu phase changes], 2.78e6 [after Al2O3,Cu phase changes]
 #  Al/MoO3- dH=4.7e6
 # A0= 2200000000, 4.89e6
+# Ea= 48000 (40nm), 70000 (100nm), 170000 (2-3um); 60000 (~70nm)
 
 ######################################################
 #			Species data
@@ -68,7 +68,7 @@ Ignition:eta,0.8
 
 #Species:Al,CuO,Al_2O_3,Cu
 Species:g,s
-Specie_IC:0,3065
+Specie_IC:0,5109
 #Specie_rho:1.1,3065
 #Specie_Cp:1100,600
 #Specie_Cv:800,600
@@ -111,7 +111,7 @@ Restart:None
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:30
+Number_Data_Output:15
 
 ######################################################
 #			Boundary conditions
@@ -131,7 +131,7 @@ Number_Data_Output:30
 # [IN PROGRESS] Radiation options: None or [emissivity, surrounding_Temp]
 ######################################################
 
-bc_left_E:F, 200000000, 0, -1
+bc_left_E:F, 200e6, 0, -1
 bc_right_E:C, 30, 300, 0, -1
 # numpy.linspace(400, 900, settings['Nodes_y'])
 

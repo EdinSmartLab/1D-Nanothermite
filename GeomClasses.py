@@ -207,7 +207,7 @@ class OneDimLine():
         elif type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
             rho=self.eta*self.rho1+(1-self.eta)*self.rho0
         else:
-            rho[:]=self.rho*(1-self.porosity)
+            rho[:]=self.rho*(1-self.porosity)+1.8*self.porosity
         
         # Specific heat (Cv)
         if (type(self.Cv) is str) and (st.find(self.Cv, 'spec')>=0):
