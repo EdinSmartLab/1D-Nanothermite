@@ -1,0 +1,74 @@
+######################################################
+#             1D Heat Conduction Solver              #
+#              Created by J. Mark Epps               #
+#          Part of Masters Thesis at UW 2018-2020    #
+######################################################
+
+############### INPUT FILE #########################
+##########Input_file##################
+
+Settings:
+MPI_Processes:6
+Length:0.003
+Nodes_x:600
+k:65.0
+Cp:eta,601,998
+rho:spec
+Darcy_mu:1e-05
+Particle_diam:4e-08
+Porosity:0.9
+gas_constant:107.93
+
+Meshing details:
+bias_type_x:None
+bias_size_x:0.003
+
+Species info:
+Species:g,s
+Specie_IC:0.0,5109.0
+
+Source Terms:
+Source_Uniform:None
+Source_Kim:True
+Ea:48000.0
+A0:4890000.0
+dH:rho,2.78e6
+Ignition:eta,0.8
+
+Time advancement:
+Fo:0.05
+dt:1e-10
+total_time_steps:None
+total_time:0.0003
+Restart:None
+Time_Scheme:Explicit
+Convergence:0.0001
+Max_iterations:100
+Number_Data_Output:15
+Output_directory:nano\40nm\6
+
+Boundary conditions:
+#bc_left_E:['F', 200000000.0, (0, -1)]
+bc_left_E:F,200000000.0,0,-1
+#bc_right_E:['C', (30.0, 300.0), (0, -1)]
+bc_right_E:C,30.0,300.0,0,-1
+#bc_left_rad:None
+bc_left_rad:None
+#bc_right_rad:None
+bc_right_rad:None
+#bc_left_P:['grad', 0.0, (0, -1)]
+bc_left_P:grad,0.0,0,-1
+#bc_right_P:['grad', 0.0, (0, -1)]
+bc_right_P:grad,0.0,0,-1
+#bc_left_mass:['grad', 0.0, (0, -1)]
+bc_left_mass:grad,0.0,0,-1
+#bc_right_mass:['grad', 0.0, (0, -1)]
+bc_right_mass:grad,0.0,0,-1
+
+##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
+
+Final time step size: 0.000000 ms
+Ignition time: 0.101788 ms
+Solver time per 1000 time steps: 0.013532 min
+Total time steps: 3000001
+Average wave speed: 74.146628 m/s
