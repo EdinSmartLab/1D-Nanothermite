@@ -15,6 +15,8 @@
 #	k,Cp,rho: [value]; for 'rho', is TMD or actual density
 #	k,Cp,rho: eta,[value when eta=0],[value when eta=1]
 #	rho,Cp: spec (calculate based on species mass fractions)
+#	Porosity: percentage of domain that is porous
+#	pore_gas: Air or Ar; gas that is present in pores
 #	gas_constant: specific gas constant for that species (for ideal gas law); J/kg/K
 ######################################################
 
@@ -32,6 +34,7 @@ k:65
 Darcy_mu:1e-5
 Particle_diam:70e-9
 Porosity:0.8
+pore_gas:Air
 gas_constant:107.93
 #81.51 For alumina, 107.93 alumina and copper, 208.11 for Ar, 
 
@@ -102,9 +105,9 @@ Fo:0.05
 #dt:0.00000001
 dt:1e-10
 #dt:None
-total_time_steps:None
-#total_time:None
-total_time:3e-4
+total_time_steps:1
+total_time:None
+#total_time:3e-4
 Time_Scheme:Explicit
 Restart:None
 

@@ -23,6 +23,7 @@ rho:5000
 Darcy_mu:1e-5
 Particle_diam:40e-9
 Porosity:0.0
+pore_gas:Air
 gas_constant:20
 
 ######################################################

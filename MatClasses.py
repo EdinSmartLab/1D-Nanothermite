@@ -47,13 +47,14 @@ class Diff_Coef():
 # Returned units are in J/kg/K
 class Cp():
     def __init__(self):
-        # Coefficients for calcuating specific heat
+        # Molar masses
         self.Al_mol_mass=26.982
         self.Al2O3_mol_mass=101.96
         self.CuO_mol_mass=79.546
         self.Cu_mol_mass=63.546
         self.Ar_mol_mass=39.948
-        # Coefficients for calculating ???
+        # Density dictionary for gases
+        self.rho={'Air': 1.2, 'Ar': 1.8}
         
     def Al(self, T, typ):
         molar_mass=26.982
@@ -190,6 +191,8 @@ class Cp():
             return self.Al2O3(T,'Cp')
         elif species=='CuO':
             return self.CuO(T,'Cp')
+        elif species=='Air':
+            return self.Air(T,'Cp')
         else:
             return self.Ar(T,'Cp')
         
@@ -204,5 +207,48 @@ class Cp():
             return self.Al2O3(T,'Cv')
         elif species=='CuO':
             return self.CuO(T,'Cv')
+        elif species=='Air':
+            return self.Air(T,'Cv')
         else:
             return self.Ar(T,'Cv')
+
+# Return thermal conductivity
+class therm_cond():
+    def __init__(self):
+        self.num='dummy'
+        
+    def Ar(self, T):
+        k=np.zeros_like(T)
+        
+        # Coefficicents for quadratic fit (338-2518 K)
+        # Excel regression of data taken from S.H.P Chen and S.C. Saxena, "Thermal conductivity of argon in temperature range 350 to 2500 K"
+        a0=8.1079
+        a1=3.9379e-2
+        a2=-4.6128e-6
+                
+        k=(a0+a1*T+a2*T**2)/1000
+        
+        return k
+        
+    def Air(self, T):
+        k=np.zeros_like(T)
+        
+        # Coefficicents for polynomial fit (300-3000 K)
+        # Excel regression of data taken from Bergman et al., Fundamentals of Heat and mass transfer
+        a0=42.467
+        a1=-0.0942
+        a2=2.3531e-4
+        a3=-1.451e-7
+        a4=3.1151e-11
+        
+        k=(a0+a1*T+a2*T**2+a3*T**3+a4*T**4)/1000
+        
+        return k
+    
+    # Main function to calculate specific heat at constant pressure
+    # Points to correct function based on specie
+    def get_k(self,T,species):
+        if species=='Air':
+            return self.Air(T)
+        else:
+            return self.Ar(T)

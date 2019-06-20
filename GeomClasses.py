@@ -26,7 +26,7 @@ Requires:
 import numpy as np
 import string as st
 import copy
-from MatClasses import Diff_Coef, Cp
+from MatClasses import Diff_Coef, Cp, therm_cond
 
 class OneDimLine():
     def __init__(self, settings, Species, solver, rank):
@@ -37,6 +37,7 @@ class OneDimLine():
         self.dx=np.zeros(self.Nx) # NOTE: SIZE MADE TO MATCH REST OF ARRAYS (FOR NOW)
         self.rank=rank
         self.porosity=settings['Porosity']
+        self.pore_gas=settings['pore_gas']
         self.species_keys=[]
         if bool(Species):
             self.species_keys=Species['keys']
@@ -50,10 +51,10 @@ class OneDimLine():
         self.k=settings['k']
         self.rho=settings['rho']
         self.Cv=settings['Cp']
-        if type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
-            line=st.split(self.rho, ',')
-            self.rho0=float(line[1])
-            self.rho1=float(line[2])
+#        if type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
+#            line=st.split(self.rho, ',')
+#            self.rho0=float(line[1])
+#            self.rho1=float(line[2])
         if (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
             line=st.split(self.Cv, ',')
             self.Cv0=float(line[1])
@@ -69,6 +70,7 @@ class OneDimLine():
         
         self.Diff=Diff_Coef()
         self.Cp_calc=Cp()
+        self.k_calc=therm_cond()
         
         # Biasing options       
         self.xbias=[settings['bias_type_x'], settings['bias_size_x']]
@@ -204,10 +206,10 @@ class OneDimLine():
         if (type(self.rho) is str) and (st.find(self.rho, 'spec')>=0):
             for i in range(len(self.species_keys)):
                 rho+=por[i]*self.rho_species[self.species_keys[i]]
-        elif type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
-            rho=self.eta*self.rho1+(1-self.eta)*self.rho0
+#        elif type(self.rho) is str and (st.find(self.rho, 'eta')>=0):
+#            rho=self.eta*self.rho1+(1-self.eta)*self.rho0
         else:
-            rho[:]=self.rho*(1-self.porosity)+1.8*self.porosity
+            rho[:]=self.rho*(1-self.porosity)+self.Cp_calc.rho[self.pore_gas]*self.porosity
         
         # Specific heat (Cv)
         if (type(self.Cv) is str) and (st.find(self.Cv, 'spec')>=0):
@@ -234,12 +236,29 @@ class OneDimLine():
                 if init:
                     break
         elif (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
-            Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
-#            Cv=self.eta*self.Cv1+(1-self.eta)*\
-#            (self.Cv0*(1-self.porosity)+(520.0-8.314*1000/39.948)*self.porosity)
-            T=self.E/Cv/rho
+#            Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
+#            Cv=(self.eta*self.Cv1+(1-self.eta)*self.Cv0)*(1-self.porosity)\
+#                +self.Cp_calc.get_Cv(300, self.pore_gas)*self.porosity
+            T_0=np.ones_like(self.eta)
+            T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
+            i=0
+            while np.amax(np.abs(T_0-T)/T)>self.conv and i<self.max_iter:
+                T_0=T.copy()
+                try:
+                    Cv=(self.rho_species[self.species_keys[0]]*(self.eta*self.Cv1+(1-self.eta)*self.Cv0)*(1-self.porosity)\
+                    +self.rho_species[self.species_keys[1]]*self.Cp_calc.get_Cv(T_0, self.pore_gas)*self.porosity)\
+                        /rho
+                except:
+                    Cv=(self.rho*(self.eta*self.Cv1+(1-self.eta)*self.Cv0)*(1-self.porosity)\
+                    +self.Cp_calc.rho[self.pore_gas]*self.Cp_calc.get_Cv(T_0, self.pore_gas)*self.porosity)\
+                        /rho
+                T=self.E/Cv/rho
+                i+=1
+                if init:
+                    break
         else:
-            Cv[:]=self.Cv
+            Cv[:]=self.Cv*(1-self.porosity)\
+                +self.Cp_calc.get_Cv(T_guess, self.pore_gas)*self.porosity
             T=self.E/Cv/rho
         
         # Specific heat (Cp) and diffusion coefficients (Dij)
@@ -266,8 +285,13 @@ class OneDimLine():
         # Thermal conductivity
         if type(self.k) is str and (st.find(self.k, 'eta')>=0):
             k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
+#            ks=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
+#            kf=self.k_calc.get_k(T, self.pore_gas)
+#            k[:]=ks*(kf/ks)**(self.porosity)
         elif type(self.k) is float:
             k[:]=self.k
+#            kf=self.k_calc.get_k(T, self.pore_gas)
+#            k[:]=self.k*(kf/self.k)**(self.porosity)
         
         if init:
             return rho, Cv
