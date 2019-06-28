@@ -24,6 +24,7 @@ Features/assumptions:
 
 import numpy as np
 import copy
+import string as st
 #import CoolProp.CoolProp as CP
 #import temporal_schemes
 import Source_Comb
@@ -48,6 +49,8 @@ class OneDimLineSolve():
         self.get_source=Source_Comb.Source_terms(Sources['Ea'], Sources['A0'], Sources['dH'])
         self.source_unif=Sources['Source_Uniform']
         self.source_Kim=Sources['Source_Kim']
+        self.ign=st.split(Sources['Ignition'], ',')
+        self.ign[1]=float(self.ign[1])
         
         # BC class
         self.BCs=BCClasses.BCs(BCs, self.dx)
@@ -76,7 +79,7 @@ class OneDimLineSolve():
             return 2*k1*k2/(k1+k2)
         
     # Main solver (1 time step)
-    def Advance_Soln_Cond(self, nt, t, hx):
+    def Advance_Soln_Cond(self, nt, t, hx, ign):
 #    def Advance_Soln_Cond(self, nt, t, hx):
         max_Y,min_Y=0,1
         # Calculate properties
@@ -95,7 +98,7 @@ class OneDimLineSolve():
             dt=self.comm.bcast(dt, root=0)
         
         if (np.isnan(dt)) or (dt<=0):
-            return 1, dt
+            return 1, dt, ign
         if self.Domain.rank==0:
             print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)
         
@@ -297,6 +300,12 @@ class OneDimLineSolve():
             # Apply boundary conditions
             self.BCs.Energy(self.Domain.E, T_0, dt_strang[i], rho, Cv, hx)
         
+        # Check for ignition
+        if ign==0 and self.source_Kim=='True':
+            if ((self.ign[0]=='eta' and np.amax(self.Domain.eta)>=self.ign[1])\
+                or (self.ign[0]=='Temp' and np.amax(T_c)>=self.ign[1])):
+                ign=1
+        
         # Save previous temp as initial guess for next time step
         self.Domain.T_guess=T_0.copy()
         ###################################################################
@@ -304,11 +313,11 @@ class OneDimLineSolve():
         ###################################################################
         if (np.isnan(np.amax(self.Domain.E))) \
         or (np.amin(self.Domain.E)<=0):
-            return 2, dt
+            return 2, dt, ign
         elif (np.amax(self.Domain.eta)>1.0) or (np.amin(self.Domain.eta)<-10**(-9)):
-            return 3, dt
+            return 3, dt, ign
         elif bool(self.Domain.rho_species) and ((min_Y<-10)\
                   or np.isnan(max_Y)):
-            return 4, dt
+            return 4, dt, ign
         else:
-            return 0, dt
+            return 0, dt, ign
