@@ -284,7 +284,8 @@ class OneDimLine():
         
         # Thermal conductivity
         if type(self.k) is str and (st.find(self.k, 'eta')>=0):
-            k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
+#            k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
+            k=self.eta*self.k1+(1-self.eta)*self.k0
 #            ks=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
 #            kf=self.k_calc.get_k(T, self.pore_gas)
 #            k[:]=ks*(kf/ks)**(self.porosity)
