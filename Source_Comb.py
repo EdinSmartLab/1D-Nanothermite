@@ -26,13 +26,14 @@ import string as st
 #import cantera as ct
 
 class Source_terms():
-    def __init__(self, Ea, A0, dH):
+    def __init__(self, Ea, A0, dH, gs_gen):
         self.R=8.314 # J/mol/K
         self.Ea=Ea # J/mol
         self.A0=A0
         self.dH=st.split(dH, ',')
         self.dH[1]=float(self.dH[1])
         self.n=0.2 # Temperature exponent
+        self.gas_gen=gs_gen
         
     # Calculate source term for combustion based on
     # K. Kim, "Computational Modeling of Combustion Wave in Nanoscale Thermite Reaction",
@@ -89,7 +90,7 @@ class Source_terms():
     # Calculate mass source term
     def Source_mass(self, deta, por, m_0):
 #        dm0=np.zeros_like(deta)
-        dm0=deta*(m_0)/por
-        dm1=deta*(m_0)/(1-por)
+        dm0=deta*(m_0)*self.gas_gen
+        dm1=deta*(m_0)*self.gas_gen
 #        dm[dm<10**(-9)]=0
         return dm0,dm1

@@ -32,8 +32,8 @@ Cp:eta,601,998
 #k:eta,39,108
 k:65
 Darcy_mu:1e-5
-Particle_diam:70e-9
-Porosity:0.8
+Particle_diam:40e-9
+Porosity:0.6
 pore_gas:Air
 gas_constant:107.93
 #81.51 For alumina, 107.93 alumina and copper, 208.11 for Ar, 
@@ -46,15 +46,17 @@ gas_constant:107.93
 #	dH: form [vol or rho],[value]; is volume or mass based enthalpy
 #	Ignition: Condition to remove flux BC in form [variable],[variable threshold]
 #		where [variable] can be eta or Temp
+#	gas_gen: percentage of thermite converted to gas
 ######################################################
 
 Source_Uniform:None
 Source_Kim:True
-Ea:60000
+Ea:48000
 A0:4.89e6
 dH:rho,2.78e6
 Ignition:eta,0.8
 #Ignition:Temp,1200
+gas_gen:0.343
 
 #  Al/CuO: 4.07e6 [density], 2.38e6 [after Al,Alumina,Cu phase changes], 2.78e6 [after Al2O3,Cu phase changes]
 #  Al/MoO3- dH=4.7e6
@@ -105,16 +107,16 @@ Fo:0.05
 #dt:0.00000001
 dt:1e-10
 #dt:None
-total_time_steps:1
-total_time:None
-#total_time:3e-4
+total_time_steps:None
+#total_time:None
+total_time:3e-4
 Time_Scheme:Explicit
 Restart:None
 
 Convergence:0.0001
 Max_iterations:100
 
-Number_Data_Output:15
+Number_Data_Output:5
 
 ######################################################
 #			Boundary conditions
