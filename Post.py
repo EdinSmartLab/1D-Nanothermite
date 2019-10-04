@@ -41,19 +41,61 @@ print('######################################################\n')
 
 inputargs=sys.argv
 if len(inputargs)>1:
-    dir_files=inputargs[1]
+    inp_file=inputargs[1]
 else:
-    print 'Usage is: python Post.py [Output directory]\n'
+    print 'Usage is: python Post.py [Input File]\n'
     print 'where\n'
-    print '[Output directory] is the directory where the data is located'
+    print '[Input File] is the Post-processing input file'
     print '***********************************'
     sys.exit('Post-processing halted')
+
+##############################################################
+#               Read post-processing file
+##############################################################
+try:
+    fin=open(inp_file, 'r')
+except:
+    sys.exit('Cannot find post-processing input file')
+    
+for line in fin:
+    if st.find(line, ':')>0 and st.find(line, '#')!=0:
+        line=st.split(line, ':')
+        if line[0]=='Directory':
+            dir_files=st.split(line[1], '\n')[0]
+        elif line[0]=='Times':
+            if st.find(line[1], ',')>0:
+                times=st.split(line[1], ',')
+                times[-1]=st.split(times[-1], '\n')[0]
+            else:
+                times=st.split(line[1], '\n')[0]
+        elif line[0]=='x_min':
+            xmin=float(line[1])
+        elif line[0]=='x_max':
+            try:
+                xmax=float(line[1])
+            except:
+                xmax=line[1]
+        elif line[0]=='1D_Plots':
+            OneD_graphs=line[1]
+        elif line[0]=='Temp_min':
+            temp_min=float(line[1])
+        elif line[0]=='Temp_max':
+            temp_max=float(line[1])
+        elif line[0]=='Temp_pts':
+            temp_pts=int(line[1])
+        elif line[0]=='Phi_Plots':
+            Phi_graphs=line[1]
+
+fin.close()
 
 try:
     os.chdir(dir_files)
 except:
     sys.exit('Directory "'+dir_files+'" not found')
-# Get Arrhenius parameters
+
+##############################################################
+#               Read Solver file
+##############################################################
 A0=-1.0
 Ea=-1.0
 source='False'
@@ -76,26 +118,32 @@ while A0<0 or Ea<0 or source=='False':
         source=st.split(line, ':')[1]
     elif st.find(line, 'Species')==0:
         titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
+    elif st.find(line, 'Length')==0 and type(xmax) is str:
+        xmax=float(st.split(line, ':')[1])*1000
 input_file.close()
 
-# Get times to process
-times=os.listdir('.')
-i=len(times)
-j=0
-while i>j:
-    if st.find(times[j],'T')==0 and st.find(times[j],'.npy')>0:
-        times[j]=st.split(st.split(times[j],'_')[1],'.npy')[0]
-        j+=1
-    else:
-        del times[j]
-        i-=1
+##############################################################
+#               Times to process (if ALL is selected)
+##############################################################
+if type(times) is str:
+    times=os.listdir('.')
+    i=len(times)
+    j=0
+    while i>j:
+        if st.find(times[j],'T')==0 and st.find(times[j],'.npy')>0:
+            times[j]=st.split(st.split(times[j],'_')[1],'.npy')[0]
+            j+=1
+        else:
+            del times[j]
+            i-=1
 
-# Graph spacial limits
-xmin,xmax=0,3
-#xmin,xmax=0.0004,0.0006
-#ymin,ymax=0.005,0.006
-
-# Generate graphs
+##############################################################
+#               Figure details (NOT USED)
+##############################################################
+# NO OPTIONS YET
+##############################################################
+#               Generate graphs
+##############################################################
 X=np.load('X.npy', False)
 for time in times:
     T=np.load('T_'+time+'.npy', False)
@@ -109,6 +157,7 @@ for time in times:
     pyplot.plot(X*1000, T)
     pyplot.xlabel('$x$ (mm)')
     pyplot.ylabel('T (K)')
+    pyplot.xlim([xmin,xmax])
     pyplot.title('Temperature distribution t='+time+' ms')
     fig.savefig('T_'+time+'.png',dpi=300)
     pyplot.close(fig)
@@ -119,26 +168,30 @@ for time in times:
         pyplot.plot(X*1000, eta)
         pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('$\eta$ (-)')
+        pyplot.xlim([xmin,xmax])
         pyplot.title('Progress distribution t='+time+' ms');
         fig.savefig('eta_'+time+'.png',dpi=300)
         pyplot.close(fig)
         
         # Reaction rate contour
-        phi=A0*(1-eta)*np.exp(-Ea/8.314/T)
-        fig=pyplot.figure(figsize=(6, 6))
-        pyplot.plot(X*1000, phi)
-        pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        pyplot.xlabel('$x$ (mm)')
-        pyplot.ylabel('$d\eta/dt$ ($s^{-1}$)')
-        pyplot.title('Reaction rate t='+time+' ms')
-        fig.savefig('Phi_'+time+'.png',dpi=300)
-        pyplot.close(fig)
+        if st.find(Phi_graphs,'True')>=0:
+            phi=A0*(1-eta)*np.exp(-Ea/8.314/T)
+            fig=pyplot.figure(figsize=(6, 6))
+            pyplot.plot(X*1000, phi)
+            pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+            pyplot.xlabel('$x$ (mm)')
+            pyplot.ylabel('$d\eta/dt$ ($s^{-1}$)')
+            pyplot.xlim([xmin,xmax])
+            pyplot.title('Reaction rate t='+time+' ms')
+            fig.savefig('Phi_'+time+'.png',dpi=300)
+            pyplot.close(fig)
     try:
         P=np.load('P_'+time+'.npy', False)
         fig=pyplot.figure(figsize=(6, 6))
         pyplot.plot(X*1000,P)
         pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('Pressure (Pa)')
+        pyplot.xlim([xmin,xmax])
         pyplot.title('Pressure t='+time+' ms');
         fig.savefig('P_'+time+'.png',dpi=300)
         pyplot.close(fig)
@@ -153,6 +206,7 @@ for time in times:
         pyplot.plot(X*1000,Y_0)
         pyplot.xlabel('$x$ (mm)')
         pyplot.ylabel('$m$ ($kg/m^3$)')
+        pyplot.xlim([xmin,xmax])
         pyplot.title('Density; $'+titles[i]+'$, t='+time+' ms');
         fig.savefig('rho_'+titles[i]+'_'+time+'.png',dpi=300)
         pyplot.close(fig)
