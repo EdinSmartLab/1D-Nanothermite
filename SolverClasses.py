@@ -61,14 +61,14 @@ class OneDimLineSolve():
             self.BCs.BCs['bc_right_E']=['F', 0.0, (0, -1)]
             
     # Time step check with dx, dy, Fo number
-    def getdt(self, k, rho, Cv, h):
+    def getdt(self, k, rhoC, h):
         # Stability check for Fourrier number
         if self.time_scheme=='Explicit':
             self.Fo=min(self.Fo, 1.0)
         elif self.Fo=='None':
             self.Fo=1.0
         
-        dt=self.Fo*rho*Cv/k*(h)**2
+        dt=self.Fo*rhoC/k*(h)**2
         return np.amin(dt)
     
     # Interpolation function
@@ -83,16 +83,16 @@ class OneDimLineSolve():
 #    def Advance_Soln_Cond(self, nt, t, hx):
         max_Y,min_Y=0,1
         # Calculate properties
-        T_0, k, rho, Cv, Cp, D=self.Domain.calcProp(self.Domain.T_guess)
+        T_0, k, rho, rhoC, Cp=self.Domain.calcProp(self.Domain.T_guess)
         mu=self.Domain.mu
         perm=self.Domain.perm
         if self.dt=='None':
-            dt=self.getdt(k, rho, Cv, hx)
+            dt=self.getdt(k, rhoC, hx)
             # Collect all dt from other processes and send minimum
             dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
             dt=self.comm.bcast(dt, root=0)
         else:
-            dt=min(self.dt,self.getdt(k, rho, Cv, hx))
+            dt=min(self.dt,self.getdt(k, rhoC, hx))
             # Collect all dt from other processes and send minimum
             dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
             dt=self.comm.bcast(dt, root=0)
@@ -141,7 +141,7 @@ class OneDimLineSolve():
             if bool(self.Domain.rho_species):
                 
                 # Adjust pressure
-                self.Domain.P=rho_spec[species[0]]*self.Domain.R*T_c
+                self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
 #                self.Domain.P=1.8*self.Domain.R*T_c
 #                self.Domain.P=(rho_spec[species[0]]*self.Domain.R+1.8*208.11)*T_c
                 
@@ -298,7 +298,7 @@ class OneDimLineSolve():
     #        self.Domain.T[1:-1,1:-1]+=0.8*5.67*10**(-8)*(T_c[:-2,1:-1]**4+T_c[2:,1:-1]**4+T_c[1:-1,:-2]**4+T_c[1:-1,2:]**4)
             
             # Apply boundary conditions
-            self.BCs.Energy(self.Domain.E, T_0, dt_strang[i], rho, Cv, hx)
+            self.BCs.Energy(self.Domain.E, T_0, dt_strang[i], rhoC, hx)
         
         # Check for ignition
         if ign==0 and self.source_Kim=='True':

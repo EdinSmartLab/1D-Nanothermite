@@ -27,10 +27,10 @@ class BCs():
         self.dx=dx
         
     # Energy BCs
-    def Energy(self, E, T_prev, dt, rho, Cv, hx):
+    def Energy(self, E, T_prev, dt, rhoC, hx):
         # Left face
         if self.BCs['bc_left_E'][0]=='T':
-            E[0]=self.BCs['bc_left_E'][1]*rho[0]*Cv[0]
+            E[0]=self.BCs['bc_left_E'][1]*rhoC[0]
                 
         else:
             if self.BCs['bc_left_E'][0]=='F':
@@ -45,7 +45,7 @@ class BCs():
             
         # Right face
         if self.BCs['bc_right_E'][0]=='T':
-            E[-1]=self.BCs['bc_right_E'][1]*rho[-1]*Cv[-1]
+            E[-1]=self.BCs['bc_right_E'][1]*rhoC[-1]
                 
         else:
             if self.BCs['bc_right_E'][0]=='F':

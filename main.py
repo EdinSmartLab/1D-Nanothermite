@@ -159,10 +159,10 @@ if st.find(settings['Restart'], 'None')<0:
             domain.rho_species[Species['Species'][i]]=mpi.split_var(rho_species, domain)
         del rho_species, P
     
-rho,Cv=domain.calcProp(T_guess=T, init=True)
+rhoC=domain.calcProp(T_guess=T, init=True)
 
-domain.E=rho*Cv*T
-del rho,Cv,T
+domain.E=rhoC*T
+del rhoC,T
 #print 'Rank %i has initialized'%(rank)
 ###########################################################################
 ## ------------------------Write Input File settings to output directory (only process 0)
