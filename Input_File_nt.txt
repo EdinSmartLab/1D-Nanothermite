@@ -32,7 +32,7 @@ Cp:eta,601,998
 #k:eta,39,108
 k:65
 Darcy_mu:1e-5
-Particle_diam:40e-9
+Particle_diam:4e-9
 Porosity:0.6
 pore_gas:Air
 gas_constant:107.93
