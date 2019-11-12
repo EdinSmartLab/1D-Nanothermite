@@ -83,7 +83,7 @@ class OneDimLineSolve():
 #    def Advance_Soln_Cond(self, nt, t, hx):
         max_Y,min_Y=0,1
         # Calculate properties
-        T_0, k, rho, rhoC, Cp=self.Domain.calcProp(self.Domain.T_guess)
+        T_0, k, rhoC, Cp=self.Domain.calcProp(self.Domain.T_guess)
         mu=self.Domain.mu
         perm=self.Domain.perm
         if self.dt=='None':
@@ -131,7 +131,7 @@ class OneDimLineSolve():
 #                    if bool(self.Domain.rho_species):
 #                        E_kim, deta =self.get_source.Source_Comb_Kim(rho_spec[species[1]], T_c, self.Domain.eta, dt_strang[i])
 #                    else:
-                    E_kim, deta =self.get_source.Source_Comb_Kim(rho, T_c, self.Domain.eta, dt_strang[i])
+                    E_kim, deta =self.get_source.Source_Comb_Kim(self.Domain.rho_0, T_c, self.Domain.eta, dt_strang[i])
         #            E_kim, deta =self.get_source.Source_Comb_Umbrajkar(rho, T_c, self.Domain.eta, dt_strang[i])
             
             
@@ -151,12 +151,14 @@ class OneDimLineSolve():
                 # Left face
                 flx[1:]+=dt_strang[i]/hx[1:]\
                     *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')\
-                    *(-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
+                    *(-self.interpolate(perm[1:], perm[:-1],'Harmonic')/mu\
+                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                     
                 # Right face
                 flx[:-1]-=dt_strang[i]/hx[:-1]\
                     *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')\
-                    *(-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
+                    *(-self.interpolate(perm[1:], perm[:-1], 'Harmonic')/mu\
+                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                     
                 # Mass Diffusion
                 # Left face
@@ -271,7 +273,8 @@ class OneDimLineSolve():
                     # Incoming fluxes (Darcy and diffusion)
                 eflx[1:]+=dt_strang[i]/hx[1:]\
                     *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                    (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                    (-self.interpolate(perm[1:], perm[:-1],'Harmonic')/mu\
+                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
                     *self.interpolate(Cp[1:],Cp[:-1],'Linear')\
                     *self.interpolate(T_c[1:],T_c[:-1],'Linear')
 #                eflx[1:]+=dt_strang[i]/hx[1:]\
@@ -283,7 +286,8 @@ class OneDimLineSolve():
                     # Outgoing fluxes (Darcy and diffusion)
                 eflx[:-1]-=dt_strang[i]/hx[:-1]\
                     *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                    (-perm/mu*(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                    (-self.interpolate(perm[1:], perm[:-1], 'Harmonic')/mu\
+                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
                     *self.interpolate(Cp[1:],Cp[:-1],'Linear')\
                     *self.interpolate(T_c[1:],T_c[:-1],'Linear')
 #                eflx[:-1]-=dt_strang[i]/hx[:-1]\

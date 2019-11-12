@@ -36,7 +36,7 @@ class OneDimLine():
         self.x=np.zeros(self.Nx)
         self.dx=np.zeros(self.Nx) # NOTE: SIZE MADE TO MATCH REST OF ARRAYS (FOR NOW)
         self.rank=rank
-        self.porosity=settings['Porosity']
+        self.porosity_0=settings['Porosity']
         self.pore_gas=settings['pore_gas']
         self.species_keys=[]
         if bool(Species):
@@ -64,8 +64,7 @@ class OneDimLine():
             self.k0=float(line[1])
             self.k1=float(line[2])
         self.mu=settings['Darcy_mu']
-        self.perm=self.porosity**3*settings['Particle_diam']**2\
-            /(72*(1-self.porosity)**2)
+        self.part_diam=settings['Particle_diam']
         self.R=settings['gas_constant']
         
         self.Diff=Diff_Coef()
@@ -125,6 +124,7 @@ class OneDimLine():
         self.eta=np.zeros_like(self.E) # extent of reaction
         self.P=np.zeros_like(self.E) # pressure
         self.T_guess=np.zeros_like(self.E)
+        self.porosity=np.ones_like(self.E)*self.porosity_0
         
         # Species
         self.rho_species={}
@@ -134,7 +134,9 @@ class OneDimLine():
             for i in range(len(self.species_keys)):
                 self.rho_species[self.species_keys[i]]=np.ones_like(self.E)\
                     *Species['Specie_IC'][i]*por[i]
-            self.rho_0+=self.rho_species[self.species_keys[1]]
+            self.rho_0=self.rho_species[self.species_keys[1]]
+        self.perm=self.porosity**3*self.part_diam**2\
+            /(72*(1-self.porosity)**2)
         
           
     # Calculate and return dimensions of CV
@@ -197,16 +199,32 @@ class OneDimLine():
         rhoC=np.zeros_like(self.eta)
         Cp=np.zeros_like(self.eta)
         
+        # Experimental: Changing porosity
+        if bool(self.rho_species):
+            self.porosity=self.porosity_0+\
+                self.rho_species[self.species_keys[0]]/self.rho_0*(1-self.porosity_0)
+            self.perm=self.porosity**3*self.part_diam**2\
+                /(72*(1-self.porosity)**2)
+        
         # Heat capacity (rho*Cv) when species model active
         if bool(self.rho_species):
+            # Solid phase
             if (type(self.Cv) is str) and (st.find(self.Cv, 'eta')>=0):
                 Cv=self.eta*self.Cv1+(1-self.eta)*(self.Cv0)
             else:
                 Cv=self.Cv
+            # rhoC of solid phase
             rhoC=self.rho_species[self.species_keys[1]]*Cv
-            rhoC+=self.rho_species[self.species_keys[0]]*self.Cp_calc.get_Cv(T_guess, self.pore_gas)
-            rho=self.rho_species[self.species_keys[1]]
+#            rhoC=self.rho*(1-self.porosity)*Cv # REPLICATE CASE 10 (CASE 10d,e)
+            # Gas phase
+#            Cv=self.Cp_calc.get_Cv(T_guess, self.pore_gas)
+            Cv=self.Cp_calc.get_Cv(np.ones_like(self.E)*1000, 'Air')
+#            Cv=self.Cp_calc.get_Cv(T_guess, 'Air')
+            # rhoC of gas phase
+            rhoC+=self.rho_species[self.species_keys[0]]*Cv
+            # Temperature calculation
             T=self.E/rhoC
+            self.T_guess=T
             # Iteratively solve temperature (temperature dependent properties)
 #            T_0=np.ones_like(self.eta)
 #            T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
@@ -229,6 +247,7 @@ class OneDimLine():
                 Cv=self.Cv
             rhoC=rho*Cv
             T=self.E/rhoC
+            self.T_guess=T
             # Iteratively solve temperature (temperature dependent properties)
 #            T_0=np.ones_like(self.eta)
 #            T=np.ones_like(self.eta)*T_guess # Initial guess for temperature
@@ -241,7 +260,7 @@ class OneDimLine():
 #                if init:
 #                    break 
         
-        # Specific heat (Cp) and diffusion coefficients (Dij)
+        # Specific heat (Cp)
         if bool(self.rho_species):
             # Products (only these have gas phases)
             if self.species_keys[0]=='Ar':
@@ -251,20 +270,21 @@ class OneDimLine():
 #                Cp=self.Cp_calc.get_Cv(T, self.pore_gas)
                 # Special mix of products, no argon or air present
 #                Cv_Al2O3=self.Cp_calc.get_Cp(T,'Al2O3')
-                Cv_Al2O3=self.Cp_calc.get_Cp(np.ones_like(T)*2327,'Al2O3')
-##                Cv_Cu=self.Cp_calc.get_Cp(T,'Cu')
-                Cv_Cu=self.Cp_calc.get_Cp(np.ones_like(T)*2843,'Cu')
+#                Cv_Al2O3=self.Cp_calc.get_Cp(np.ones_like(T)*2327,'Al2O3')
+#                Cv_Cu=self.Cp_calc.get_Cp(T,'Cu')
+#                Cv_Cu=self.Cp_calc.get_Cp(np.ones_like(T)*2843,'Cu')
 #                
-##                Cp=self.rho_species[self.species_keys[0]]*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
-                Cp=(0.351*Cv_Al2O3+0.649*Cv_Cu)                
+#                Cp=self.rho_species[self.species_keys[0]]*por[0]*(0.351*Cv_Al2O3+0.649*Cv_Cu)/rho
+#                Cp=(0.351*Cv_Al2O3+0.649*Cv_Cu)
+                Cp=self.Cp_calc.get_Cp(T, 'Air')
+#                Cp=Cv
         
         # Thermal conductivity
         if type(self.k) is str and (st.find(self.k, 'eta')>=0):
-#            k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
-            k=self.eta*self.k1+(1-self.eta)*self.k0
-#            ks=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1)
+#            k=(self.eta/self.k1+(1-self.eta)/self.k0)**(-1) # Series model
+            k=self.eta*self.k1+(1-self.eta)*self.k0 # Parallel model
 #            kf=self.k_calc.get_k(T, self.pore_gas)
-#            k[:]=ks*(kf/ks)**(self.porosity)
+#            k[:]=ks*(kf/ks)**(self.porosity) # Geometric model
         elif type(self.k) is float:
             k[:]=self.k
 #            kf=self.k_calc.get_k(T, self.pore_gas)
@@ -273,4 +293,4 @@ class OneDimLine():
         if init:
             return rhoC
         else:
-            return T, k, rho, rhoC, Cp
+            return T, k, rhoC, Cp
