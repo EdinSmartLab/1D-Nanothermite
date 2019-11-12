@@ -120,7 +120,14 @@ while A0<0 or Ea<0 or source=='False':
         titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
     elif st.find(line, 'Length')==0 and type(xmax) is str:
         xmax=float(st.split(line, ':')[1])*1000
+    elif st.find(line, 'Particle_diam')==0:
+        part_diam=float(st.split(line, ':')[1])
+    elif st.find(line, 'Porosity')==0:
+        porosity=float(st.split(line, ':')[1])
+    elif st.find(line, 'Darcy_mu')==0:
+        mu=float(st.split(line, ':')[1])
 input_file.close()
+perm=porosity**3*part_diam**2/(72*(1-porosity)**2)
 
 ##############################################################
 #               Times to process (if ALL is selected)
@@ -186,6 +193,7 @@ for time in times:
             fig.savefig('Phi_'+time+'.png',dpi=300)
             pyplot.close(fig)
     try:
+        # Pressure plot
         P=np.load('P_'+time+'.npy', False)
         fig=pyplot.figure(figsize=(6, 6))
         pyplot.plot(X*1000,P)
@@ -194,6 +202,16 @@ for time in times:
         pyplot.xlim([xmin,xmax])
         pyplot.title('Pressure t='+time+' ms');
         fig.savefig('P_'+time+'.png',dpi=300)
+        pyplot.close(fig)
+        # Velocity plot
+        u=-perm/mu*(P[1:]-P[:-1])/(X[1:]-X[:-1])
+        fig=pyplot.figure(figsize=(6, 6))
+        pyplot.plot(X[1:]*1000,u)
+        pyplot.xlabel('$x$ (mm)')
+        pyplot.ylabel('Velocity (m/s)')
+        pyplot.xlim([xmin,xmax])
+        pyplot.title('Darcy velocity t='+time+' ms');
+        fig.savefig('u_'+time+'.png',dpi=300)
         pyplot.close(fig)
     except:
         print 'Processed '+time
