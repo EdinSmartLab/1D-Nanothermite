@@ -122,9 +122,13 @@ class BCs():
         # Left face
         if self.BCs['bc_left_P'][0]=='grad':
             P[0]=P[1]-self.BCs['bc_left_P'][1]*self.dx[0]
+        elif self.BCs['bc_left_P'][0]=='P':
+            P[0]=self.BCs['bc_left_P'][1]
         
         # Right face
         if self.BCs['bc_right_P'][0]=='grad':
             P[-1]=self.BCs['bc_right_P'][1]*self.dx[-1]+P[-2]
+        elif self.BCs['bc_right_P'][0]=='P':
+            P[-1]=self.BCs['bc_right_P'][1]
             
         return 0
