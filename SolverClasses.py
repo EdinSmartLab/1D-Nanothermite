@@ -44,6 +44,8 @@ class OneDimLineSolve():
         self.rank=geom_obj.rank # MPI info
         self.size=size # MPI info
         self.comm=comm # MPI comms
+        self.diff_inter=settings['diff_interpolation']
+        self.conv_inter=settings['conv_interpolation']
         
         # Define source terms and pointer to source object here
         self.get_source=Source_Comb.Source_terms(Sources['Ea'], Sources['A0'], Sources['dH'], Sources['gas_gen'])
@@ -84,8 +86,6 @@ class OneDimLineSolve():
         max_Y,min_Y=0,1
         # Calculate properties
         T_0, k, rhoC, Cp=self.Domain.calcProp(self.Domain.T_guess)
-        mu=self.Domain.mu
-        perm=self.Domain.perm
         if self.dt=='None':
             dt=self.getdt(k, rhoC, hx)
             # Collect all dt from other processes and send minimum
@@ -112,11 +112,13 @@ class OneDimLineSolve():
 #        T_0=self.Domain.TempFromConserv()
         E_0=self.Domain.E.copy()
         T_c=T_0.copy()
-        if bool(self.Domain.rho_species):
+        if self.Domain.model=='Species':
             rho_0=copy.deepcopy(self.Domain.rho_species)
             rho_spec=copy.deepcopy(self.Domain.rho_species)
             species=self.Domain.species_keys
-            
+            mu=self.Domain.mu
+            perm=self.Domain.perm
+        
         # Beginning of strang splitting routine (2 step process)
         for i in range(len(dt_strang)):
             ###################################################################
@@ -127,7 +129,7 @@ class OneDimLineSolve():
             if i==0:
                 if self.source_unif!='None':
                     E_unif      = self.source_unif
-                if self.source_Kim=='True':
+                if self.source_Kim=='True' or self.Domain.model=='Species':
 #                    if bool(self.Domain.rho_species):
 #                        E_kim, deta =self.get_source.Source_Comb_Kim(rho_spec[species[1]], T_c, self.Domain.eta, dt_strang[i])
 #                    else:
@@ -138,7 +140,7 @@ class OneDimLineSolve():
             ###################################################################
             # Conservation of Mass
             ###################################################################
-            if bool(self.Domain.rho_species):
+            if self.Domain.model=='Species':
                 
                 # Adjust pressure
                 self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
@@ -150,14 +152,14 @@ class OneDimLineSolve():
                 
                 # Left face
                 flx[1:]+=dt_strang[i]/hx[1:]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')\
-                    *(-self.interpolate(perm[1:], perm[:-1],'Harmonic')/mu\
+                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)\
+                    *(-self.interpolate(perm[1:], perm[:-1],self.diff_inter)/mu\
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                     
                 # Right face
                 flx[:-1]-=dt_strang[i]/hx[:-1]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], 'Linear')\
-                    *(-self.interpolate(perm[1:], perm[:-1], 'Harmonic')/mu\
+                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], self.conv_inter)\
+                    *(-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                     
                 # Mass Diffusion
@@ -255,46 +257,46 @@ class OneDimLineSolve():
             # Heat diffusion
                 #left faces
             self.Domain.E[1:]   -= dt_strang[i]/hx[1:]\
-                        *self.interpolate(k[:-1],k[1:], 'Harmonic')\
+                        *self.interpolate(k[:-1],k[1:], self.diff_inter)\
                         *(T_c[1:]-T_c[:-1])/self.dx[:-1]
             
                 # Right face
             self.Domain.E[:-1] += dt_strang[i]/hx[:-1]\
-                        *self.interpolate(k[1:],k[:-1], 'Harmonic')\
+                        *self.interpolate(k[1:],k[:-1], self.diff_inter)\
                         *(T_c[1:]-T_c[:-1])/self.dx[:-1]
             
             # Source terms
             self.Domain.E +=E_unif*dt_strang[i]
             self.Domain.E +=E_kim *dt_strang[i]
             
-            if bool(self.Domain.rho_species):
+            if self.Domain.model=='Species':
                 # Porous medium advection
                 eflx=np.zeros_like(self.Domain.P)
                     # Incoming fluxes (Darcy and diffusion)
                 eflx[1:]+=dt_strang[i]/hx[1:]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                    (-self.interpolate(perm[1:], perm[:-1],'Harmonic')/mu\
+                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\
+                    (-self.interpolate(perm[1:], perm[:-1],self.diff_inter)/mu\
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                    *self.interpolate(Cp[1:],Cp[:-1],'Linear')\
-                    *self.interpolate(T_c[1:],T_c[:-1],'Linear')
+                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
+                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
 #                eflx[1:]+=dt_strang[i]/hx[1:]\
-#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], 'Harmonic')\
+#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], self.diff_inter)\
 #                    *(rho_spec[species[0]][1:]-rho_spec[species[0]][:-1])/self.dx[:-1]\
-#                    *self.interpolate(Cp[1:],Cp[:-1],'Linear')\
-#                    *self.interpolate(T_c[1:],T_c[:-1],'Linear')
+#                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
+#                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
                     
                     # Outgoing fluxes (Darcy and diffusion)
                 eflx[:-1]-=dt_strang[i]/hx[:-1]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],'Linear')*\
-                    (-self.interpolate(perm[1:], perm[:-1], 'Harmonic')/mu\
+                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\
+                    (-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                    *self.interpolate(Cp[1:],Cp[:-1],'Linear')\
-                    *self.interpolate(T_c[1:],T_c[:-1],'Linear')
+                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
+                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
 #                eflx[:-1]-=dt_strang[i]/hx[:-1]\
-#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], 'Harmonic')\
+#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], self.diff_inter)\
 #                    *(rho_spec[species[0]][1:]-rho_spec[species[0]][:-1])/self.dx[:-1]\
-#                    *self.interpolate(Cp[1:],Cp[:-1],'Linear')\
-#                    *self.interpolate(T_c[1:],T_c[:-1],'Linear')
+#                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
+#                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
     
     #            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
                 self.Domain.E +=eflx
@@ -320,7 +322,7 @@ class OneDimLineSolve():
             return 2, dt, ign
         elif (np.amax(self.Domain.eta)>1.0) or (np.amin(self.Domain.eta)<-10**(-9)):
             return 3, dt, ign
-        elif bool(self.Domain.rho_species) and ((min_Y<-10)\
+        elif self.Domain.model=='Species' and ((min_Y<-10)\
                   or np.isnan(max_Y)):
             return 4, dt, ign
         else:

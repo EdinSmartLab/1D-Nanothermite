@@ -88,7 +88,7 @@ class MPI_comms():
             self.comm.Send(domain.eta[-2], dest=domain.proc_right)
             self.comm.Recv(a, source=domain.proc_left)
             domain.eta[0]=a
-        if bool(self.Species):
+        if domain.model=='Species':
             # Send to the left, receive from the right
             self.comm.Send(domain.P[1], dest=domain.proc_left)
             a=np.ones(1)*domain.P[-1]
@@ -99,7 +99,7 @@ class MPI_comms():
             a=np.ones(1)*domain.P[0]
             self.comm.Recv(a, source=domain.proc_left)
             domain.P[0]=a
-            for i in self.Species['keys']:
+            for i in domain.species_keys:
                 # Send to the left, receive from the right
                 self.comm.Send(domain.rho_species[i][1], dest=domain.proc_left)
                 a=np.ones(1)*domain.rho_species[i][-1]
@@ -142,9 +142,9 @@ class MPI_comms():
             # Kim source term
             if st.find(self.Sources['Source_Kim'],'True')>=0:
                 np.save('eta_'+time, Domain.eta, False)
-            if bool(self.Species):
+            if Domain.model=='Species':
                 np.save('P_'+time, Domain.P, False)
-                for i in self.Species['keys']:
+                for i in Domain.species_keys:
                     np.save('rho_'+i+'_'+time, Domain.rho_species[i], False)
         # More than 1 process
         else:
@@ -154,9 +154,9 @@ class MPI_comms():
             if st.find(self.Sources['Source_Kim'],'True')>=0:
                 eta=self.compile_var(Domain.eta, Domain)
                 np.save('eta_'+time, eta, False)
-            if bool(self.Species):
+            if Domain.model=='Species':
                 P=self.compile_var(Domain.P, Domain)
                 np.save('P_'+time, P, False)
-                for i in self.Species['keys']:
+                for i in Domain.species_keys:
                     m_i=self.compile_var(Domain.rho_species[i], Domain)
                     np.save('rho_'+i+'_'+time, m_i, False)

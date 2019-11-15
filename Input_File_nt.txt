@@ -8,35 +8,60 @@
 #    Reference directions:
 #    left-smallest x coordinate
 #    right-largest x value
+#
+#    Properties are in standard units J, kg, K, W, m
+#    Lines in Input file with '#' at beginning will NOT be read by solver
 
 ######################################################
-#			Settings
-#	Properties are in standard units J, kg, K, W, m
-#	k,Cp,rho: [value]; for 'rho', is TMD or actual density
-#	k,Cp,rho: eta,[value when eta=0],[value when eta=1]
-#	rho,Cp: spec (calculate based on species mass fractions)
-#	Porosity: percentage of domain that is porous
-#	pore_gas: Air or Ar; gas that is present in pores
-#	gas_constant: specific gas constant for that species (for ideal gas law); J/kg/K
+#			Domain and Mesh Settings
+#	Mesh settings currently not available
+#Biasing options:
+#    -'OneWayUp'   for linearly increasing element sizes with increasing x/y
+#    -'OneWayDown' for linearly decreasing element sizes with increasing x/y
+#    -'TwoWayEnd'  for linearly increasing sizes till middle, then decrease again
+#    -'TwoWayMid'  for linearly decreasing sizes till middle, then increase again
+#    -size         is the smallest element size based on above selection
 ######################################################
 
 Length:0.003
 Nodes_x:600
-#rho:5109
-rho:spec
-#rho:1523
-#rho:eta,5643,7191
-#Cp:625
-Cp:eta,601,998
-#Cp:spec
-#k:eta,39,108
-k:65
-Darcy_mu:1e-5
-Particle_diam:4e-9
+bias_type_x:None
+bias_size_x:0.003
+
+######################################################
+#			Model Settings
+#	Model: 'Species' for 2 species model or 'Heat' for conduction model
+#	Species: Indicate species chemical formula separated by commas; first is gas phase
+#	rho_IC: Initial densities of each species in order specified in 'Species'; density of phase, not per continuum vol
+#	Cv_s or k_s: Specific heat or thermal conductivity settings for solid phase
+#	Cv_g or k_g: Specific heat or thermal conductivity settings for gas phase
+#	Cv_g or Cv_s: [chemical],Temp; [chemical] is chemical formula of species, must be in MatClasses to be valid
+#	Cv_g or Cv_s: [chemical],Temp,[Temperature value]
+#	Cv_g or Cv_s: eta,[value at eta=0],[value at eta=1]
+#	k_s or k_g: same options as Cv_g or Cv_s
+#	k_model: Parallel, Geometric, Series; otherwise, k_s is used only
+#	Porosity: percentage of domain that is porous
+#	Darcy_mu: Viscosity used in Darcy's law
+#	Carmen_diam: Particle diameter used in permeability calculation (Carmen-Kozeny)
+#	pore_gas: Air or Ar; gas that is present in pores
+#	gas_constant: specific gas constant for that species (for ideal gas law); J/kg/K
+######################################################
+Model:Species
+#Model:Heat
+Species:Air,s
+rho_IC:0,5109
+Cv_s:eta,601,998
+Cv_g:Air,Temp,1000
+Cp_g:Air,Temp
+k_s:65
+k_g:65
+k_model:Parallel
 Porosity:0.6
-pore_gas:Air
-gas_constant:107.93
-#81.51 For alumina, 107.93 alumina and copper, 208.11 for Ar, 
+Darcy_mu:1e-5
+Carmen_diam:40e-9
+gas_constant:81.51
+diff_interpolation:Harmonic
+conv_interpolation:Linear
 
 ######################################################
 #			Source terms
@@ -46,7 +71,7 @@ gas_constant:107.93
 #	dH: form [vol or rho],[value]; is volume or mass based enthalpy
 #	Ignition: Condition to remove flux BC in form [variable],[variable threshold]
 #		where [variable] can be eta or Temp
-#	gas_gen: percentage of thermite converted to gas
+#	gas_gen: percentage of solid converted to gas
 ######################################################
 
 Source_Uniform:None
@@ -55,42 +80,7 @@ Ea:48000
 A0:4.89e6
 dH:rho,2.78e6
 Ignition:eta,0.8
-#Ignition:Temp,1200
 gas_gen:0.343
-
-#  Al/CuO: 4.07e6 [density], 2.38e6 [after Al,Alumina,Cu phase changes], 2.78e6 [after Al2O3,Cu phase changes]
-#  Al/MoO3- dH=4.7e6
-# A0= 2200000000, 4.89e6
-# Ea= 48000 (40nm), 70000 (100nm), 170000 (2-3um); 60000 (~70nm)
-
-######################################################
-#			Species data
-#	Species: Indicate species chemical formula separated by commas
-#	Specie_IC: Initial densities of each species in order specified in 'Species'
-#	Sepcie_Cp: Specific heats of each species in order specified in 'Species'
-#	Commenting this section out will remove mass/momentum transfer from model
-######################################################
-
-#Species:Al,CuO,Al_2O_3,Cu
-Species:g,s
-Specie_IC:0,5109
-#Specie_rho:1.1,3065
-#Specie_Cp:1100,600
-#Specie_Cv:800,600
-
-######################################################
-#			Meshing details
-#	Currently not available
-#Biasing options:
-#    -'OneWayUp'   for linearly increasing element sizes with increasing x/y
-#    -'OneWayDown' for linearly decreasing element sizes with increasing x/y
-#    -'TwoWayEnd'  for linearly increasing sizes till middle, then decrease again
-#    -'TwoWayMid'  for linearly decreasing sizes till middle, then increase again
-#    -size         is the smallest element size based on above selection
-######################################################
-
-bias_type_x:None
-bias_size_x:0.003
 
 ######################################################
 #			Time advancement details
@@ -104,11 +94,8 @@ bias_size_x:0.003
 ######################################################
 
 Fo:0.05
-#dt:0.00000001
 dt:1e-10
-#dt:None
 total_time_steps:None
-#total_time:None
 total_time:3e-4
 Time_Scheme:Explicit
 Restart:None
@@ -138,19 +125,12 @@ Number_Data_Output:5
 
 bc_left_E:F, 200e6, 0, -1
 bc_right_E:C, 30, 300, 0, -1
-# numpy.linspace(400, 900, settings['Nodes_y'])
 
 bc_left_rad:None
 bc_right_rad:None
 
-#bc_left_mom:
-#bc_right_mom:
-
 bc_left_P:grad,0,0,-1
 bc_right_P:grad,0,0,-1
-
-#bc_left_mass:grad_P,0,0,-1
-#bc_right_mass:grad_P,0,0,-1
 
 bc_left_mass:grad,0,0,-1
 bc_right_mass:grad,0,0,-1

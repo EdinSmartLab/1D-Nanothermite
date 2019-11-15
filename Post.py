@@ -107,7 +107,7 @@ except:
     except:
         sys.exit('Input file missing')
 
-titles=[]
+titles=['g','s']
 while A0<0 or Ea<0 or source=='False':
     line=input_file.readline()
     if st.find(line, 'Ea')==0:
@@ -116,18 +116,17 @@ while A0<0 or Ea<0 or source=='False':
         A0=float(st.split(line, ':')[1])
     elif st.find(line, 'Source_Kim')==0:
         source=st.split(line, ':')[1]
-    elif st.find(line, 'Species')==0:
-        titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
+#    elif st.find(line, 'Species')==0:
+#        titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
     elif st.find(line, 'Length')==0 and type(xmax) is str:
         xmax=float(st.split(line, ':')[1])*1000
-    elif st.find(line, 'Particle_diam')==0:
+    elif st.find(line, 'Carmen_diam')==0:
         part_diam=float(st.split(line, ':')[1])
     elif st.find(line, 'Porosity')==0:
-        porosity=float(st.split(line, ':')[1])
+        porosity_0=float(st.split(line, ':')[1])
     elif st.find(line, 'Darcy_mu')==0:
         mu=float(st.split(line, ':')[1])
 input_file.close()
-perm=porosity**3*part_diam**2/(72*(1-porosity)**2)
 
 ##############################################################
 #               Times to process (if ALL is selected)
@@ -204,6 +203,7 @@ for time in times:
         fig.savefig('P_'+time+'.png',dpi=300)
         pyplot.close(fig)
         # Velocity plot
+        perm=porosity_0**3*part_diam**2/(72*(1-porosity_0)**2)
         u=-perm/mu*(P[1:]-P[:-1])/(X[1:]-X[:-1])
         fig=pyplot.figure(figsize=(6, 6))
         pyplot.plot(X[1:]*1000,u)
