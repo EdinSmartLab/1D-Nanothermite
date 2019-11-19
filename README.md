@@ -1,36 +1,59 @@
 # 1D Heat Conduction Code
 
-This repository contains the Python code to solve the 1D Heat conduction equations. Based on 2D conduction code architechture.
+This repository contains the Python code to solve the 1D Heat conduction equations with a new model for nano-thermite combustion.
 
-# Current state:
--solve 1D heat conduction with uniform heat generation (Explicit)
+# Solver Details
+-Vertex-centred, finite volume method, Explicit
 
--Combustion source term from Kim (Explicit)
+-2nd order central differences for diffusion flux; harmonic or linear interpolation at control surfaces
 
--two species model with Darcy's law, species tracker (gas and solid only); TESTING PHASE
+-Solve heat conduction equations (Heat model) or nano-thermite model (Species model)
 
--can be run from command prompt and must be run in parallel
+-Customizable specific heat capacity based on reaction progress (Arrhenius source term), temperature or a constant
 
--can restart a simulation using variable data from previous run
 
--post-processing script outputs Temperature, reaction progress, reaction rate and species data
+-Customizable thermal conductivity models and calculation methods
 
-# Run code from cmd:
+
+-Boundary Conditions: Constant, Flux or convective
+
+
+-Run from command prompt; must be in parallel with equal nodes in each process
+
+-Can restart a simulation using variable data from previous run
+
+# Heat Model
+-Uniform heat generation or exponential (Arrhenius) source term options
+
+# Species Model (In Development)
+-Two species tracker of solid material with a fraction of it converted to a gas phase
+
+
+-Exponential (Arrhenius) source term for heat generation and species conversion rate
+
+
+-Darcy's law implemented in convective terms with permeability calculated via Carmen-Kozeny
+
+# Run code from **cmd**
 cd [directory]
 
 mpiexec -n [proc] python main.py [input file name] [Output directory]
 
 where:
 
+[directory]-is the directory where python files for code are located
+
 [proc]-number of processors used; must be an even number
 
-[input file name]-name of input file including extension in name (.txt files have been tested); based on current directory
+[input file name]-name and relative path of input file including extension in name (.txt files have been tested)
 
-[Output directory]-directory to save data files to; based on current directory; will create if non-existent
+[Output directory]-relative path to directory to save data files to; will create if non-existent
 
-# Post-processing data:
-python Post.py [Output directory]
+# Post-processing data
+-post-processing script outputs Temperature, reaction progress, reaction rate and species distribution
+
+python Post.py [input file name]
 
 where:
 
-[Output directory]-directory where data files are stored
+[input file name]-relative path to Post.py input file
