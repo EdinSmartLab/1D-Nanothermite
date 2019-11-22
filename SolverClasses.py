@@ -144,8 +144,7 @@ class OneDimLineSolve():
                 
                 # Adjust pressure
                 self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
-#                self.Domain.P=1.8*self.Domain.R*T_c
-#                self.Domain.P=(rho_spec[species[0]]*self.Domain.R+1.8*208.11)*T_c
+                self.BCs.P(self.Domain.P)
                 
                 # Use Darcy's law to directly calculate the velocities at the faces
                 flx=np.zeros_like(self.Domain.P)
