@@ -10,7 +10,7 @@
 #	Times: Times in file names separated by commas OR ALL for all files
 ######################################################
 
-Directory:nano\40nm\2b
+Directory:Tests\3a
 Times:ALL
 #Times:0.366674,0.375012,0.383351,0.391671,0.400009
 

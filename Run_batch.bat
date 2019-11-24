@@ -12,19 +12,19 @@ mpiexec -n %proc% python main.py %fold1%\Start.txt %fold1%
 REM python Post.py %fold1%
 REM TIMEOUT /T 300
 
-mpiexec -n %proc% python main.py %fold2%\Start.txt %fold2%
+REM mpiexec -n %proc% python main.py %fold2%\Start.txt %fold2%
 REM python Post.py %fold2%
 REM TIMEOUT /T 300
 
-mpiexec -n %proc% python main.py %fold3%\Start.txt %fold3%
+REM mpiexec -n %proc% python main.py %fold3%\Start.txt %fold3%
 REM python Post.py %fold3%
 REM TIMEOUT /T 300
 
-mpiexec -n %proc% python main.py %fold4%\Start.txt %fold4%
+REM mpiexec -n %proc% python main.py %fold4%\Start.txt %fold4%
 REM python Post.py %fold4%
 REM TIMEOUT /T 300
 
-mpiexec -n %proc% python main.py %fold5%\Start.txt %fold5%
+REM mpiexec -n %proc% python main.py %fold5%\Start.txt %fold5%
 REM python Post.py %fold5%
 
 mpiexec -n %proc% python main.py %fold6%\Start.txt %fold6%
