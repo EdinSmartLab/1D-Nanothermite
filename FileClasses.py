@@ -17,7 +17,7 @@ This file contains classes for reading and writing files in proper format:
 
 keys_Settings=['MPI_Processes', 'Length','Nodes_x','Model',\
                'k_s','k_model','Cv_s','rho_IC','Darcy_mu', \
-               'Carmen_diam','Porosity', 'gas_constant',\
+               'Carmen_diam','Kozeny_const','Porosity', 'gas_constant',\
                'diff_interpolation', 'conv_interpolation']
 
 keys_mesh=['bias_type_x','bias_size_x']
