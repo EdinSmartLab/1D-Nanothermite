@@ -24,14 +24,19 @@ Desired:
 """
 
 import numpy as np
-#import CoolProp.CoolProp as CP
 import os
 import sys
 import string as st
-from matplotlib import pyplot, cm
-#from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import pyplot
+from FileClasses import FileIn
 
 pyplot.ioff()
+
+def interpolate(k1, k2, func):
+    if func=='Linear':
+        return 0.5*k1+0.5*k2
+    else:
+        return 2*k1*k2/(k1+k2)
 
 print('######################################################')
 print('#            1D Conduction Post-processing           #')
@@ -96,37 +101,52 @@ except:
 ##############################################################
 #               Read Solver file
 ##############################################################
-A0=-1.0
-Ea=-1.0
-source='False'
+#A0=-1.0
+#Ea=-1.0
+#source='False'
 try:
-    input_file=open('Input_file.txt')
+    input_file=FileIn('Input_file.txt',False)
+#    open('Input_file.txt')
 except:
     try:
-        input_file=open('Input_file_stats.txt')
+        input_file=FileIn('Input_file_stats.txt',False)
     except:
         sys.exit('Input file missing')
 
 titles=['g','s']
-while A0<0 or Ea<0 or source=='False':
-    line=input_file.readline()
-    if st.find(line, 'Ea')==0:
-        Ea=float(st.split(line, ':')[1])
-    elif st.find(line, 'A0')==0:
-        A0=float(st.split(line, ':')[1])
-    elif st.find(line, 'Source_Kim')==0:
-        source=st.split(line, ':')[1]
-#    elif st.find(line, 'Species')==0:
-#        titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
-    elif st.find(line, 'Length')==0 and type(xmax) is str:
-        xmax=float(st.split(line, ':')[1])*1000
-    elif st.find(line, 'Carmen_diam')==0:
-        part_diam=float(st.split(line, ':')[1])
-    elif st.find(line, 'Porosity')==0:
-        porosity_0=float(st.split(line, ':')[1])
-    elif st.find(line, 'Darcy_mu')==0:
-        mu=float(st.split(line, ':')[1])
-input_file.close()
+
+settings={}
+sources={}
+Species={}
+BCs={}
+input_file.Read_Input(settings, sources, Species, BCs)
+xmax=float(settings['Length'])*1000
+try:
+    settings['rho_IC']=st.split(settings['rho_IC'], ',')
+except:
+    settings['rho_IC']=float(settings['rho_IC'])
+#inputs_float=['Ea','A0','Length','Carmen_diam','Porosity','Darcy_mu']
+#inputs_str=['Source_Kim']
+#values={}
+#while A0<0 or Ea<0 or source=='False':
+#    line=input_file.readline()
+#    if st.find(line, 'Ea')==0:
+#        Ea=float(st.split(line, ':')[1])
+#    elif st.find(line, 'A0')==0:
+#        A0=float(st.split(line, ':')[1])
+#    elif st.find(line, 'Source_Kim')==0:
+#        source=st.split(line, ':')[1]
+##    elif st.find(line, 'Species')==0:
+##        titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
+#    elif st.find(line, 'Length')==0 and type(xmax) is str:
+#        xmax=float(st.split(line, ':')[1])*1000
+#    elif st.find(line, 'Carmen_diam')==0:
+#        part_diam=float(st.split(line, ':')[1])
+#    elif st.find(line, 'Porosity')==0:
+#        porosity_0=float(st.split(line, ':')[1])
+#    elif st.find(line, 'Darcy_mu')==0:
+#        mu=float(st.split(line, ':')[1])
+#input_file.close()
 
 ##############################################################
 #               Times to process (if ALL is selected)
@@ -153,9 +173,9 @@ if type(times) is str:
 X=np.load('X.npy', False)
 for time in times:
     T=np.load('T_'+time+'.npy', False)
-    if st.find(source,'True')>=0:
+    if st.find(sources['Source_Kim'],'True')>=0:
         eta=np.load('eta_'+time+'.npy', False)
-        Y_tot=np.zeros_like(X)
+        Y_tot=0.0
     
     # 1D temperature profile at centreline
      
@@ -168,7 +188,7 @@ for time in times:
     fig.savefig('T_'+time+'.png',dpi=300)
     pyplot.close(fig)
     
-    if st.find(source,'True')>=0:
+    if st.find(sources['Source_Kim'],'True')>=0:
         # Progress contour
         fig=pyplot.figure(figsize=(6, 6))
         pyplot.plot(X*1000, eta)
@@ -181,7 +201,7 @@ for time in times:
         
         # Reaction rate contour
         if st.find(Phi_graphs,'True')>=0:
-            phi=A0*(1-eta)*np.exp(-Ea/8.314/T)
+            phi=sources['A0']*(1-eta)*np.exp(-sources['Ea']/8.314/T)
             fig=pyplot.figure(figsize=(6, 6))
             pyplot.plot(X*1000, phi)
             pyplot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
@@ -202,17 +222,6 @@ for time in times:
         pyplot.title('Pressure t='+time+' ms');
         fig.savefig('P_'+time+'.png',dpi=300)
         pyplot.close(fig)
-        # Velocity plot
-        perm=porosity_0**3*part_diam**2/(72*(1-porosity_0)**2)
-        u=-perm/mu*(P[1:]-P[:-1])/(X[1:]-X[:-1])
-        fig=pyplot.figure(figsize=(6, 6))
-        pyplot.plot(X[1:]*1000,u)
-        pyplot.xlabel('$x$ (mm)')
-        pyplot.ylabel('Velocity (m/s)')
-        pyplot.xlim([xmin,xmax])
-        pyplot.title('Darcy velocity t='+time+' ms');
-        fig.savefig('u_'+time+'.png',dpi=300)
-        pyplot.close(fig)
     except:
         print 'Processed '+time
         continue
@@ -228,10 +237,26 @@ for time in times:
         pyplot.title('Density; $'+titles[i]+'$, t='+time+' ms');
         fig.savefig('rho_'+titles[i]+'_'+time+'.png',dpi=300)
         pyplot.close(fig)
-        Y_tot+=Y_0
-            
+        Y_tot+=np.sum(Y_0)/len(Y_0)
+#        Y_tot+=Y_0
+    
+    # Velocity plot
+    por=settings['Porosity']+\
+        (1-Y_0/(float(settings['rho_IC'][1])*settings['Porosity']))\
+        *(1-settings['Porosity'])
+    perm=por**3*settings['Carmen_diam']**2/(settings['Kozeny_const']*(1-por)**2)
+    u=-interpolate(perm[1:], perm[:-1], settings['diff_interpolation'])\
+        /settings['Darcy_mu']*(P[1:]-P[:-1])/(X[1:]-X[:-1])
+    fig=pyplot.figure(figsize=(6, 6))
+    pyplot.plot(X[1:]*1000,u)
+    pyplot.xlabel('$x$ (mm)')
+    pyplot.ylabel('Velocity (m/s)')
+    pyplot.xlim([xmin,xmax])
+    pyplot.title('Darcy velocity t='+time+' ms');
+    fig.savefig('u_'+time+'.png',dpi=300)
+    pyplot.close(fig)
         
     print 'Processed '+time
-    print '     Mass balance residual: %8f'%(np.amin(Y_tot))
+    print '     Mass balance residual: %8f'%(float(Y_tot))
 
 print '\nPost-processing complete'
