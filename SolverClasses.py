@@ -57,8 +57,10 @@ class OneDimLineSolve():
         # Modify BCs if no process is next to current one
         if self.Domain.proc_left>=0:
             self.BCs.BCs['bc_left_E']=['F', 0.0, (0, -1)]
+            self.BCs.BCs['bc_left_P']=['none', 0.0, (0, -1)]
         if self.Domain.proc_right>=0:
             self.BCs.BCs['bc_right_E']=['F', 0.0, (0, -1)]
+            self.BCs.BCs['bc_right_P']=['none', 0.0, (0, -1)]
             
     # Time step check with dx, dy, Fo number
     def getdt(self, k, rhoC, h):
@@ -119,7 +121,7 @@ class OneDimLineSolve():
         # Beginning of strang splitting routine (2 step process)
         for i in range(len(dt_strang)):
             ###################################################################
-            # Calculate source and Porous medium terms
+            # Calculate source terms
             ###################################################################
             # Source terms
             E_unif,E_kim=0,0
@@ -134,9 +136,8 @@ class OneDimLineSolve():
             ###################################################################
             if self.Domain.model=='Species':
                 
-                # Adjust pressure
+                # Calculate pressure
                 self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
-                self.BCs.P(self.Domain.P)
                 
                 # Use Darcy's law to directly calculate the velocities at the faces
                 flx=np.zeros_like(self.Domain.P)
@@ -160,14 +161,20 @@ class OneDimLineSolve():
                 dm0,dm1=self.get_source.Source_mass(deta, self.Domain.porosity, self.Domain.rho_0)
                 self.Domain.rho_species[species[0]]+=dm0*dt_strang[i]
                 self.Domain.rho_species[species[1]]-=dm1*dt_strang[i]
-                        
+                
+                # Apply pressure BCs
+                self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
+                eflx=self.BCs.P(self.Domain.P, self.Domain.R, T_c)
+                self.Domain.rho_species[species[0]]+=eflx*self.Domain.porosity
+                
+                # Check max and min for divergence
                 max_Y=max(np.amax(self.Domain.rho_species[species[0]]),\
                           np.amax(self.Domain.rho_species[species[1]]))
                 min_Y=min(np.amin(self.Domain.rho_species[species[0]]),\
                           np.amin(self.Domain.rho_species[species[1]]))
                 
                 # Apply BCs
-    #            self.BCs.mass(self.Domain.m_species[species[0]], self.Domain.P, Ax, Ay)
+#                self.BCs.mass(self.Domain.m_species[species[0]], self.Domain.P, Ax, Ay)
             ###################################################################
             # Conservation of Energy
             ###################################################################
@@ -189,7 +196,7 @@ class OneDimLineSolve():
             
             if self.Domain.model=='Species':
                 # Porous medium advection
-                eflx=np.zeros_like(self.Domain.P)
+                eflx*=Cp*T_c # Convert mass flux to energy flux
                     # Incoming fluxes (Darcy and diffusion)
                 eflx[1:]+=dt_strang[i]/hx[1:]\
                     *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\

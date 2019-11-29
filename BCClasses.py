@@ -118,17 +118,25 @@ class BCs():
         return 0
     
     # Pressure BCs (eventually lead to momentum)
-    def P(self, P):
+    def P(self, P, R, T):
+        flx=np.zeros_like(P)
         # Left face
         if self.BCs['bc_left_P'][0]=='grad':
-            P[0]=P[1]-self.BCs['bc_left_P'][1]*self.dx[0]
+            P_0=P[1]-self.BCs['bc_left_P'][1]*self.dx[0]
         elif self.BCs['bc_left_P'][0]=='P':
-            P[0]=self.BCs['bc_left_P'][1]
+            P_0=self.BCs['bc_left_P'][1]
+        else:
+            P_0=P[0]
+        
+        flx[0]=min((P_0-P[0])/(R*T[0]),0) # Required flux to get Pressure BC
         
         # Right face
         if self.BCs['bc_right_P'][0]=='grad':
-            P[-1]=self.BCs['bc_right_P'][1]*self.dx[-1]+P[-2]
+            P_0=self.BCs['bc_right_P'][1]*self.dx[-1]+P[-2]
         elif self.BCs['bc_right_P'][0]=='P':
-            P[-1]=self.BCs['bc_right_P'][1]
-            
-        return 0
+            P_0=self.BCs['bc_right_P'][1]
+        else:
+            P_0=P[-1]
+        
+        flx[-1]=min((P_0-P[-1])/(R*T[-1]),0) # Required flux to get Pressure BC
+        return flx
