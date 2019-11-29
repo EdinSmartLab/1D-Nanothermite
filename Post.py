@@ -101,9 +101,6 @@ except:
 ##############################################################
 #               Read Solver file
 ##############################################################
-#A0=-1.0
-#Ea=-1.0
-#source='False'
 try:
     input_file=FileIn('Input_file.txt',False)
 #    open('Input_file.txt')
@@ -125,28 +122,6 @@ try:
     settings['rho_IC']=st.split(settings['rho_IC'], ',')
 except:
     settings['rho_IC']=float(settings['rho_IC'])
-#inputs_float=['Ea','A0','Length','Carmen_diam','Porosity','Darcy_mu']
-#inputs_str=['Source_Kim']
-#values={}
-#while A0<0 or Ea<0 or source=='False':
-#    line=input_file.readline()
-#    if st.find(line, 'Ea')==0:
-#        Ea=float(st.split(line, ':')[1])
-#    elif st.find(line, 'A0')==0:
-#        A0=float(st.split(line, ':')[1])
-#    elif st.find(line, 'Source_Kim')==0:
-#        source=st.split(line, ':')[1]
-##    elif st.find(line, 'Species')==0:
-##        titles=st.split(st.split(st.split(line, ':')[1], '\n')[0], ',')
-#    elif st.find(line, 'Length')==0 and type(xmax) is str:
-#        xmax=float(st.split(line, ':')[1])*1000
-#    elif st.find(line, 'Carmen_diam')==0:
-#        part_diam=float(st.split(line, ':')[1])
-#    elif st.find(line, 'Porosity')==0:
-#        porosity_0=float(st.split(line, ':')[1])
-#    elif st.find(line, 'Darcy_mu')==0:
-#        mu=float(st.split(line, ':')[1])
-#input_file.close()
 
 ##############################################################
 #               Times to process (if ALL is selected)
@@ -238,7 +213,6 @@ for time in times:
         fig.savefig('rho_'+titles[i]+'_'+time+'.png',dpi=300)
         pyplot.close(fig)
         Y_tot+=np.sum(Y_0)/len(Y_0)
-#        Y_tot+=Y_0
     
     # Velocity plot
     por=settings['Porosity']+\
