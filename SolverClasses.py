@@ -25,8 +25,6 @@ Features/assumptions:
 import numpy as np
 import copy
 import string as st
-#import CoolProp.CoolProp as CP
-#import temporal_schemes
 import Source_Comb
 import BCClasses
 from mpi4py import MPI
@@ -109,7 +107,6 @@ class OneDimLineSolve():
             dt_strang=[dt]
         
         # Copy needed variables and set pointers to other variables
-#        T_0=self.Domain.TempFromConserv()
         E_0=self.Domain.E.copy()
         T_c=T_0.copy()
         if self.Domain.model=='Species':
@@ -130,12 +127,7 @@ class OneDimLineSolve():
                 if self.source_unif!='None':
                     E_unif      = self.source_unif
                 if self.source_Kim=='True' or self.Domain.model=='Species':
-#                    if bool(self.Domain.rho_species):
-#                        E_kim, deta =self.get_source.Source_Comb_Kim(rho_spec[species[1]], T_c, self.Domain.eta, dt_strang[i])
-#                    else:
                     E_kim, deta =self.get_source.Source_Comb_Kim(self.Domain.rho_0, T_c, self.Domain.eta, dt_strang[i])
-        #            E_kim, deta =self.get_source.Source_Comb_Umbrajkar(rho, T_c, self.Domain.eta, dt_strang[i])
-            
             
             ###################################################################
             # Conservation of Mass
@@ -161,23 +153,11 @@ class OneDimLineSolve():
                     *(-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                     
-                # Mass Diffusion
-                # Left face
-#                flx[1:]-=dt_strang[i]/hx[1:]\
-#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], 'Harmonic')\
-#                    *(rho_spec[species[0]][1:]-rho_spec[species[0]][:-1])/self.dx[:-1]
-#                    
-#                # Right face
-#                flx[:-1]+=dt_strang[i]/hx[:-1]\
-#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], 'Harmonic')\
-#                    *(rho_spec[species[0]][1:]-rho_spec[species[0]][:-1])/self.dx[:-1]
-                
                 self.Domain.rho_species[species[0]]=rho_0[species[0]]+flx
                 self.Domain.rho_species[species[1]]=rho_0[species[1]].copy()
                 
                 # Source terms
                 dm0,dm1=self.get_source.Source_mass(deta, self.Domain.porosity, self.Domain.rho_0)
-    #            print '     Mass generated: %f, %f'%(np.amax(dm)*10**(9),np.amin(dm)*10**(9))
                 self.Domain.rho_species[species[0]]+=dm0*dt_strang[i]
                 self.Domain.rho_species[species[1]]-=dm1*dt_strang[i]
                         
@@ -188,67 +168,6 @@ class OneDimLineSolve():
                 
                 # Apply BCs
     #            self.BCs.mass(self.Domain.m_species[species[0]], self.Domain.P, Ax, Ay)
-            
-            ###################################################################
-            # Conservation of Momentum (x direction; gas)
-            ###################################################################
-            # Fluxes
-    #        self.Domain.mu_species[species[0]][:,1:]+=Ax[:,1:]*dt_strang[i]\
-    #            *0.5*(mu_c[species[0]][:,1:]+mu_c[species[0]][:,:-1])*self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-    #        self.Domain.mu_species[species[0]][1:,:]+=Ay[1:,:]*dt_strang[i]\
-    #            *0.5*(mu_c[species[0]][1:,:]+mu_c[species[0]][:-1,:])*self.interpolate(v[1:,:], v[:-1,:], 'Linear')
-    #        self.Domain.mu_species[species[0]][:,:-1]-=Ax[:,:-1]*dt_strang[i]\
-    #            *0.5*(mu_c[species[0]][:,1:]+mu_c[species[0]][:,:-1])*self.interpolate(u[:,1:], u[:,:-1], 'Linear')
-    #        self.Domain.mu_species[species[0]][:-1,:]-=Ay[:-1,:]*dt_strang[i]\
-    #            *0.5*(mu_c[species[0]][1:,:]+mu_c[species[0]][:-1,:])*self.interpolate(v[1:,:], v[:-1,:], 'Linear')
-    #        
-    #        # Pressure
-    #        self.Domain.mu_species[species[0]][:,1:]+=Ax[:,1:]*dt_strang[i]\
-    #            *0.5*(self.Domain.P[:,1:]+self.Domain.P[:,:-1])
-    #        self.Domain.mu_species[species[0]][:,:-1]-=Ax[:,:-1]*dt_strang[i]\
-    #            *0.5*(self.Domain.P[:,1:]+self.Domain.P[:,:-1])
-    #                
-    #        # Porous medium losses
-    #        self.Domain.mu_species[species[0]]-=mu/perm*u*dt_strang[i]
-    #        
-            ###################################################################
-            # Conservation of species
-            ###################################################################
-    #        if bool(self.Domain.m_species):
-    #            # Mole ratios
-    #            mole_ratio={}
-    #            mole_ratio[species[0]]=-2.0/5 # Al
-    #            mole_ratio[species[1]]=-3.0/5 # CuO
-    #            mole_ratio[species[2]]=1.0/4  # Al2O3
-    #            mole_ratio[species[3]]=3.0/4  # Cu
-    #            
-    #            for i in species:
-    #                # Calculate flux coefficients
-    #                aW,aE,aS,aN=self.get_Coeff(self.dx,self.dy, dt_strang[i], rho*D[i], 'Linear')
-    #                
-    #                # Diffusion contribution (2nd order central schemes)
-    #                self.Domain.m_species[i][:,1:]    = aW[:,1:]    * m_c[i][:,:-1]
-    #                self.Domain.m_species[i][:,0]     = aE[:,0]     * m_c[i][:,1]
-    #                
-    #                self.Domain.m_species[i][:,1:-1] += aE[:,1:-1]  * m_c[i][:,2:]
-    #                self.Domain.m_species[i][1:,:]   += aS[1:,:]    * m_c[i][:-1,:]
-    #                self.Domain.m_species[i][:-1,:]  += aN[:-1,:]   * m_c[i][1:,:]
-    #                self.Domain.m_species[i]         -= (aW+aE+aS+aN)*m_c[i]
-    #            
-    #                # Species generated/destroyed during reaction
-    #                self.Domain.m_species[i]+=mole_ratio[i]*deta
-    #                
-    #                # Species advected from Porous medium equations [TO BE CONTINUED]
-    #                
-    #                
-    #                # Apply data from previous time step
-    #                self.Domain.m_species[i]*= dt_strang[i]
-    #                self.Domain.m_species[i]+= m_c[i]
-    ##                print(self.Domain.m_species[i])
-    #                # IMPLICITLY MAKING SPECIES FLUX 0 AT BOUNDARIES
-    #                max_Y=max(np.amax(self.Domain.m_species[i]), max_Y)
-    #                min_Y=min(np.amin(self.Domain.m_species[i]), min_Y)
-    #        print(self.Domain.m_species)
             ###################################################################
             # Conservation of Energy
             ###################################################################
@@ -278,11 +197,6 @@ class OneDimLineSolve():
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
                     *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
                     *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
-#                eflx[1:]+=dt_strang[i]/hx[1:]\
-#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], self.diff_inter)\
-#                    *(rho_spec[species[0]][1:]-rho_spec[species[0]][:-1])/self.dx[:-1]\
-#                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
-#                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
                     
                     # Outgoing fluxes (Darcy and diffusion)
                 eflx[:-1]-=dt_strang[i]/hx[:-1]\
@@ -291,16 +205,8 @@ class OneDimLineSolve():
                     *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
                     *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
                     *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
-#                eflx[:-1]-=dt_strang[i]/hx[:-1]\
-#                    *self.interpolate(D[species[0]][1:],D[species[0]][:-1], self.diff_inter)\
-#                    *(rho_spec[species[0]][1:]-rho_spec[species[0]][:-1])/self.dx[:-1]\
-#                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
-#                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
-    
-    #            print '    Gas energy flux in x: %f, %f'%(np.amax(eflx)*10**(9),np.amin(eflx)*10**(9))
+                
                 self.Domain.E +=eflx
-    #        # Radiation effects
-    #        self.Domain.T[1:-1,1:-1]+=0.8*5.67*10**(-8)*(T_c[:-2,1:-1]**4+T_c[2:,1:-1]**4+T_c[1:-1,:-2]**4+T_c[1:-1,2:]**4)
             
             # Apply boundary conditions
             self.BCs.Energy(self.Domain.E, T_0, dt_strang[i], rhoC, hx)
