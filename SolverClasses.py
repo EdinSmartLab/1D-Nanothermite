@@ -36,6 +36,7 @@ class OneDimLineSolve():
         self.time_scheme=settings['Time_Scheme']
         self.dx=geom_obj.dx
         self.Fo=settings['Fo']
+        self.CFL=settings['CFL']
         self.dt=settings['dt']
         self.conv=settings['Convergence']
         self.countmax=settings['Max_iterations']
@@ -63,15 +64,19 @@ class OneDimLineSolve():
             self.BCs.BCs['bc_right_P']=['none', 0.0, (0, -1)]
             
     # Time step check with dx, dy, Fo number
-    def getdt(self, k, rhoC, h):
+    def getdt(self, k, rhoC, h, u):
         # Stability check for Fourrier number
         if self.time_scheme=='Explicit':
             self.Fo=min(self.Fo, 1.0)
         elif self.Fo=='None':
             self.Fo=1.0
         
-        dt=self.Fo*rhoC/k*(h)**2
-        return np.amin(dt)
+        dt1=np.amin(self.Fo*rhoC/k*(h)**2)
+		# CFL stability (if flow model used)
+        u[u==0]=10**(-9)
+        dt2=np.amin(self.CFL*self.dx/np.abs(u))
+		
+        return min(dt1, dt2)
     
     # Interpolation function
     def interpolate(self, k1, k2, func):
@@ -84,15 +89,32 @@ class OneDimLineSolve():
     def Advance_Soln_Cond(self, nt, t, hx, ign):
 #    def Advance_Soln_Cond(self, nt, t, hx):
         max_Y,min_Y=0,1
+        u=np.zeros_like(hx)
         # Calculate properties
         T_0, k, rhoC, Cp=self.Domain.calcProp(self.Domain.T_guess)
+        
+		# Copy needed variables and set pointers to other variables
+        E_0=self.Domain.E.copy()
+        T_c=T_0.copy()
+        if self.Domain.model=='Species':
+            rho_0=copy.deepcopy(self.Domain.rho_species)
+            rho_spec=copy.deepcopy(self.Domain.rho_species)
+            species=self.Domain.species_keys
+            mu=self.Domain.mu
+            perm=self.Domain.perm
+			# Calculate pressure
+            self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
+			# Darcy velocities right faces
+            u[:-1]=(-self.interpolate(perm[1:],perm[:-1], self.diff_inter)/mu\
+                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
+		
         if self.dt=='None':
-            dt=self.getdt(k, rhoC, hx)
+            dt=self.getdt(k, rhoC, hx, u)
             # Collect all dt from other processes and send minimum
             dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
             dt=self.comm.bcast(dt, root=0)
         else:
-            dt=min(self.dt,self.getdt(k, rhoC, hx))
+            dt=min(self.dt,self.getdt(k, rhoC, hx, u))
             # Collect all dt from other processes and send minimum
             dt=self.comm.reduce(dt, op=MPI.MIN, root=0)
             dt=self.comm.bcast(dt, root=0)
@@ -107,16 +129,6 @@ class OneDimLineSolve():
             dt_strang=[0.5*dt, dt]
         else:
             dt_strang=[dt]
-        
-        # Copy needed variables and set pointers to other variables
-        E_0=self.Domain.E.copy()
-        T_c=T_0.copy()
-        if self.Domain.model=='Species':
-            rho_0=copy.deepcopy(self.Domain.rho_species)
-            rho_spec=copy.deepcopy(self.Domain.rho_species)
-            species=self.Domain.species_keys
-            mu=self.Domain.mu
-            perm=self.Domain.perm
         
         # Beginning of strang splitting routine (2 step process)
         for i in range(len(dt_strang)):

@@ -92,6 +92,7 @@ gas_gen:0.343
 ######################################################
 
 Fo:0.2
+CFL:0.01
 dt:None
 total_time_steps:1
 total_time:None

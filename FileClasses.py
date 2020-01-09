@@ -26,7 +26,7 @@ keys_Sources=['Source_Uniform','Source_Kim','Ea','A0','dH', 'Ignition', 'gas_gen
 
 keys_Species=['Cv_g','Cp_g','k_g']
 
-keys_Time_adv=['Fo','dt','total_time_steps', 'total_time','Restart',\
+keys_Time_adv=['Fo','CFL','dt','total_time_steps', 'total_time','Restart',\
                'Time_Scheme','Convergence','Max_iterations','Number_Data_Output']
 
 keys_BCs=     ['bc_left_E','bc_right_E',\
