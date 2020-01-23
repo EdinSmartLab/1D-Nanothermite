@@ -87,7 +87,6 @@ class OneDimLineSolve():
         
     # Main solver (1 time step)
     def Advance_Soln_Cond(self, nt, t, hx, ign):
-#    def Advance_Soln_Cond(self, nt, t, hx):
         max_Y,min_Y=0,1
         u=np.zeros_like(hx)
         # Calculate properties
@@ -97,7 +96,6 @@ class OneDimLineSolve():
         E_0=self.Domain.E.copy()
         T_c=T_0.copy()
         if self.Domain.model=='Species':
-            rho_0=copy.deepcopy(self.Domain.rho_species)
             rho_spec=copy.deepcopy(self.Domain.rho_species)
             species=self.Domain.species_keys
             mu=self.Domain.mu
@@ -122,113 +120,103 @@ class OneDimLineSolve():
         if (np.isnan(dt)) or (dt<=0):
             return 1, dt, ign
         if self.Domain.rank==0:
-            print 'Time step %i, Step size=%.7f, Time elapsed=%f;'%(nt+1,dt, t+dt)
+            print 'Time step %i, Step size=%.7fms, Time elapsed=%f;'%(nt+1,dt*1000, t+dt)
         
-        # If strang splitting
-        if self.time_scheme=='Strang_split':
-            dt_strang=[0.5*dt, dt]
-        else:
-            dt_strang=[dt]
+        ###################################################################
+        # Calculate source terms
+        ###################################################################
+        # Source terms
+        E_unif,E_kim=0,0
+        if self.source_unif!='None':
+            E_unif      = self.source_unif
+        if self.source_Kim=='True' or self.Domain.model=='Species':
+            E_kim, deta =self.get_source.Source_Comb_Kim(self.Domain.rho_0, T_c, self.Domain.eta, dt)
         
-        # Beginning of strang splitting routine (2 step process)
-        for i in range(len(dt_strang)):
-            ###################################################################
-            # Calculate source terms
-            ###################################################################
-            # Source terms
-            E_unif,E_kim=0,0
-            if i==0:
-                if self.source_unif!='None':
-                    E_unif      = self.source_unif
-                if self.source_Kim=='True' or self.Domain.model=='Species':
-                    E_kim, deta =self.get_source.Source_Comb_Kim(self.Domain.rho_0, T_c, self.Domain.eta, dt_strang[i])
+        ###################################################################
+        # Conservation of Mass
+        ###################################################################
+        if self.Domain.model=='Species':
             
-            ###################################################################
-            # Conservation of Mass
-            ###################################################################
-            if self.Domain.model=='Species':
+            # Calculate pressure
+            self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
+            
+            # Use Darcy's law to directly calculate the velocities at the faces
+            flx=np.zeros_like(self.Domain.P)
+            
+            # Left face
+            flx[1:]+=dt/hx[1:]\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)\
+                *(-self.interpolate(perm[1:], perm[:-1],self.diff_inter)/mu\
+                *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                 
-                # Calculate pressure
-                self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
+            # Right face
+            flx[:-1]-=dt/hx[:-1]\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], self.conv_inter)\
+                *(-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
+                *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
                 
-                # Use Darcy's law to directly calculate the velocities at the faces
-                flx=np.zeros_like(self.Domain.P)
-                
-                # Left face
-                flx[1:]+=dt_strang[i]/hx[1:]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)\
-                    *(-self.interpolate(perm[1:], perm[:-1],self.diff_inter)/mu\
-                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
-                    
-                # Right face
-                flx[:-1]-=dt_strang[i]/hx[:-1]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1], self.conv_inter)\
-                    *(-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
-                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])
-                    
-                self.Domain.rho_species[species[0]]=rho_0[species[0]]+flx
-                self.Domain.rho_species[species[1]]=rho_0[species[1]].copy()
-                
-                # Source terms
-                dm0,dm1=self.get_source.Source_mass(deta, self.Domain.porosity, self.Domain.rho_0)
-                self.Domain.rho_species[species[0]]+=dm0*dt_strang[i]
-                self.Domain.rho_species[species[1]]-=dm1*dt_strang[i]
-                
-                # Apply pressure BCs
-                self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
-                eflx=self.BCs.P(self.Domain.P, self.Domain.R, T_c)
-                self.Domain.rho_species[species[0]]+=eflx*self.Domain.porosity
-                
-                # Check max and min for divergence
-                max_Y=max(np.amax(self.Domain.rho_species[species[0]]),\
-                          np.amax(self.Domain.rho_species[species[1]]))
-                min_Y=min(np.amin(self.Domain.rho_species[species[0]]),\
-                          np.amin(self.Domain.rho_species[species[1]]))
-                
-                # Apply BCs
+            self.Domain.rho_species[species[0]]+=flx
+            
+            # Source terms
+            dm0,dm1=self.get_source.Source_mass(deta, self.Domain.porosity, self.Domain.rho_0)
+            self.Domain.rho_species[species[0]]+=dm0*dt
+            self.Domain.rho_species[species[1]]-=dm1*dt
+            
+            # Apply pressure BCs
+            self.Domain.P=rho_spec[species[0]]/self.Domain.porosity*self.Domain.R*T_c
+            eflx=self.BCs.P(self.Domain.P, self.Domain.R, T_c)
+            self.Domain.rho_species[species[0]]+=eflx*self.Domain.porosity
+            
+            # Check max and min for divergence
+            max_Y=max(np.amax(self.Domain.rho_species[species[0]]),\
+                      np.amax(self.Domain.rho_species[species[1]]))
+            min_Y=min(np.amin(self.Domain.rho_species[species[0]]),\
+                      np.amin(self.Domain.rho_species[species[1]]))
+            
+            # Apply BCs
 #                self.BCs.mass(self.Domain.m_species[species[0]], self.Domain.P, Ax, Ay)
-            ###################################################################
-            # Conservation of Energy
-            ###################################################################
-            self.Domain.E=E_0.copy()
-            # Heat diffusion
-                #left faces
-            self.Domain.E[1:]   -= dt_strang[i]/hx[1:]\
-                        *self.interpolate(k[:-1],k[1:], self.diff_inter)\
-                        *(T_c[1:]-T_c[:-1])/self.dx[:-1]
-            
-                # Right face
-            self.Domain.E[:-1] += dt_strang[i]/hx[:-1]\
-                        *self.interpolate(k[1:],k[:-1], self.diff_inter)\
-                        *(T_c[1:]-T_c[:-1])/self.dx[:-1]
-            
-            # Source terms
-            self.Domain.E +=E_unif*dt_strang[i]
-            self.Domain.E +=E_kim *dt_strang[i]
-            
-            if self.Domain.model=='Species':
-                # Porous medium advection
-                eflx*=Cp*T_c # Convert mass flux to energy flux
-                    # Incoming fluxes (Darcy and diffusion)
-                eflx[1:]+=dt_strang[i]/hx[1:]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\
-                    (-self.interpolate(perm[1:], perm[:-1],self.diff_inter)/mu\
-                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
-                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
-                    
-                    # Outgoing fluxes (Darcy and diffusion)
-                eflx[:-1]-=dt_strang[i]/hx[:-1]\
-                    *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\
-                    (-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
-                    *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
-                    *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
-                    *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
+        ###################################################################
+        # Conservation of Energy
+        ###################################################################
+        self.Domain.E=E_0.copy()
+        # Heat diffusion
+            #left faces
+        self.Domain.E[1:]   -= dt/hx[1:]\
+                    *self.interpolate(k[:-1],k[1:], self.diff_inter)\
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]
+        
+            # Right face
+        self.Domain.E[:-1] += dt/hx[:-1]\
+                    *self.interpolate(k[1:],k[:-1], self.diff_inter)\
+                    *(T_c[1:]-T_c[:-1])/self.dx[:-1]
+        
+        # Source terms
+        self.Domain.E +=E_unif*dt
+        self.Domain.E +=E_kim *dt
+        
+        if self.Domain.model=='Species':
+            # Porous medium advection
+            eflx*=Cp*T_c # Convert mass flux to energy flux
+                # Incoming fluxes (Darcy and diffusion)
+            eflx[1:]+=dt/hx[1:]\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\
+                (-self.interpolate(perm[1:], perm[:-1],self.diff_inter)/mu\
+                *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
+                *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
                 
-                self.Domain.E +=eflx
+                # Outgoing fluxes (Darcy and diffusion)
+            eflx[:-1]-=dt/hx[:-1]\
+                *self.interpolate(rho_spec[species[0]][1:],rho_spec[species[0]][:-1],self.conv_inter)*\
+                (-self.interpolate(perm[1:], perm[:-1], self.diff_inter)/mu\
+                *(self.Domain.P[1:]-self.Domain.P[:-1])/self.dx[:-1])\
+                *self.interpolate(Cp[1:],Cp[:-1],self.conv_inter)\
+                *self.interpolate(T_c[1:],T_c[:-1],self.conv_inter)
             
-            # Apply boundary conditions
-            self.BCs.Energy(self.Domain.E, T_0, dt_strang[i], rhoC, hx)
+            self.Domain.E +=eflx
+        
+        # Apply boundary conditions
+        self.BCs.Energy(self.Domain.E, T_0, dt, rhoC, hx)
         
         # Check for ignition
         if ign==0 and self.source_Kim=='True':
