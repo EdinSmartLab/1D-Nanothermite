@@ -10,22 +10,28 @@
 Settings:
 MPI_Processes:6
 Length:0.003
-Nodes_x:600
-k:65.0
-Cp:eta,601,998
-rho:spec
+Nodes_x:300
+Model:Species
+k_s:65.0
+k_model:Parallel
+Cv_s:eta,601,998
+rho_IC:0,5109
 Darcy_mu:1e-05
-Particle_diam:4e-08
+Carmen_diam:4e-08
+Kozeny_const:72.0
 Porosity:0.4
-gas_constant:107.93
+gas_constant:81.51
+diff_interpolation:Harmonic
+conv_interpolation:Linear
+
+Species info:
+Cv_g:Air,Temp,1000
+Cp_g:Air,Temp
+k_g:65.0
 
 Meshing details:
 bias_type_x:None
 bias_size_x:0.003
-
-Species info:
-Species:g,s
-Specie_IC:0.0,5109.0
 
 Source Terms:
 Source_Uniform:None
@@ -34,13 +40,15 @@ Ea:48000.0
 A0:4890000.0
 dH:rho,2.78e6
 Ignition:eta,0.8
+gas_gen:0.343
 
 Time advancement:
 Fo:0.05
-dt:1e-10
+CFL:0.01
+dt:1e-09
 total_time_steps:None
-total_time:0.0004
-Restart:300000
+total_time:0.0006
+Restart:None
 Time_Scheme:Explicit
 Convergence:0.0001
 Max_iterations:100
@@ -48,8 +56,8 @@ Number_Data_Output:20
 Output_directory:nano\40nm\3
 
 Boundary conditions:
-#bc_left_E:['F', 200000000.0, (0, -1)]
-bc_left_E:F,200000000.0,0,-1
+#bc_left_E:['F', 400000000.0, (0, -1)]
+bc_left_E:F,400000000.0,0,-1
 #bc_right_E:['C', (30.0, 300.0), (0, -1)]
 bc_right_E:C,30.0,300.0,0,-1
 #bc_left_rad:None
@@ -58,17 +66,37 @@ bc_left_rad:None
 bc_right_rad:None
 #bc_left_P:['grad', 0.0, (0, -1)]
 bc_left_P:grad,0.0,0,-1
-#bc_right_P:['grad', 0.0, (0, -1)]
-bc_right_P:grad,0.0,0,-1
+#bc_right_P:['P', 0.0, (0, -1)]
+bc_right_P:P,0.0,0,-1
 #bc_left_mass:['grad', 0.0, (0, -1)]
 bc_left_mass:grad,0.0,0,-1
 #bc_right_mass:['grad', 0.0, (0, -1)]
 bc_right_mass:grad,0.0,0,-1
 
+Wave speed [m/s] at t=0.030001 ms: 0 m/s
+Wave speed [m/s] at t=0.060000 ms: 0 m/s
+Wave speed [m/s] at t=0.090000 ms: 0 m/s
+Wave speed [m/s] at t=0.120000 ms: 0 m/s
 ##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
 
-Final time step size: 0.000000 ms
-Ignition time: 0.307742 ms
-Solver time per 1000 time steps: 0.013160 min
-Total time steps: 1000001
-Average wave speed: 34.675349 m/s
+Wave speed [m/s] at t=0.150001 ms: inst-4.83, avg-6.37
+Wave speed [m/s] at t=0.180001 ms: inst-4.55, avg-5.30
+Wave speed [m/s] at t=0.210001 ms: inst-4.56, avg-5.01
+Wave speed [m/s] at t=0.240001 ms: inst-4.56, avg-4.89
+Wave speed [m/s] at t=0.270001 ms: inst-4.55, avg-4.82
+Wave speed [m/s] at t=0.300001 ms: inst-4.58, avg-4.77
+Wave speed [m/s] at t=0.330000 ms: inst-4.56, avg-4.74
+Wave speed [m/s] at t=0.360000 ms: inst-4.56, avg-4.72
+Wave speed [m/s] at t=0.390000 ms: inst-4.58, avg-4.70
+Wave speed [m/s] at t=0.420000 ms: inst-4.56, avg-4.69
+Wave speed [m/s] at t=0.450000 ms: inst-4.56, avg-4.68
+Wave speed [m/s] at t=0.480000 ms: inst-4.58, avg-4.67
+Wave speed [m/s] at t=0.510000 ms: inst-4.56, avg-4.66
+Wave speed [m/s] at t=0.540000 ms: inst-4.56, avg-4.65
+Wave speed [m/s] at t=0.570000 ms: inst-4.58, avg-4.65
+Wave speed [m/s] at t=0.600000 ms: inst-4.56, avg-4.64
+Final time step size: 0.000001 ms
+Ignition time: 0.131883 ms
+Solver time per 1000 time steps: 0.011522 min
+Total time steps: 600000
+Average wave speed: 4.64 m/s

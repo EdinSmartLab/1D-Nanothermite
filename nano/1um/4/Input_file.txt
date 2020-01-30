@@ -1,0 +1,102 @@
+######################################################
+#             1D Heat Conduction Solver              #
+#              Created by J. Mark Epps               #
+#          Part of Masters Thesis at UW 2018-2020    #
+######################################################
+
+############### INPUT FILE #########################
+##########Input_file##################
+
+Settings:
+MPI_Processes:6
+Length:0.003
+Nodes_x:300
+Model:Species
+k_s:65.0
+k_model:Parallel
+Cv_s:eta,601,998
+rho_IC:0,5109
+Darcy_mu:1e-05
+Carmen_diam:1e-06
+Kozeny_const:72.0
+Porosity:0.6
+gas_constant:81.51
+diff_interpolation:Harmonic
+conv_interpolation:Linear
+
+Species info:
+Cv_g:Air,Temp,1000
+Cp_g:Air,Temp
+k_g:65.0
+
+Meshing details:
+bias_type_x:None
+bias_size_x:0.003
+
+Source Terms:
+Source_Uniform:None
+Source_Kim:True
+Ea:48000.0
+A0:4890000.0
+dH:rho,2.78e6
+Ignition:eta,0.8
+gas_gen:0.343
+
+Time advancement:
+Fo:0.05
+CFL:0.01
+dt:1e-09
+total_time_steps:None
+total_time:0.0002
+Restart:None
+Time_Scheme:Explicit
+Convergence:0.0001
+Max_iterations:100
+Number_Data_Output:20
+Output_directory:nano\1um\4
+
+Boundary conditions:
+#bc_left_E:['F', 400000000.0, (0, -1)]
+bc_left_E:F,400000000.0,0,-1
+#bc_right_E:['C', (30.0, 300.0), (0, -1)]
+bc_right_E:C,30.0,300.0,0,-1
+#bc_left_rad:None
+bc_left_rad:None
+#bc_right_rad:None
+bc_right_rad:None
+#bc_left_P:['grad', 0.0, (0, -1)]
+bc_left_P:grad,0.0,0,-1
+#bc_right_P:['P', 0.0, (0, -1)]
+bc_right_P:P,0.0,0,-1
+#bc_left_mass:['grad', 0.0, (0, -1)]
+bc_left_mass:grad,0.0,0,-1
+#bc_right_mass:['grad', 0.0, (0, -1)]
+bc_right_mass:grad,0.0,0,-1
+
+Wave speed [m/s] at t=0.010000 ms: 0 m/s
+Wave speed [m/s] at t=0.020001 ms: 0 m/s
+Wave speed [m/s] at t=0.030001 ms: 0 m/s
+Wave speed [m/s] at t=0.040000 ms: 0 m/s
+Wave speed [m/s] at t=0.050000 ms: 0 m/s
+Wave speed [m/s] at t=0.060000 ms: 0 m/s
+Wave speed [m/s] at t=0.070000 ms: 0 m/s
+Wave speed [m/s] at t=0.080000 ms: 0 m/s
+Wave speed [m/s] at t=0.090000 ms: 0 m/s
+Wave speed [m/s] at t=0.100000 ms: 0 m/s
+##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
+
+Wave speed [m/s] at t=0.110000 ms: inst-25.83, avg-18.83
+Wave speed [m/s] at t=0.120000 ms: inst-50.40, avg-32.74
+Wave speed [m/s] at t=0.130000 ms: inst-65.91, avg-42.62
+Wave speed [m/s] at t=0.140000 ms: inst-73.89, avg-51.71
+Wave speed [m/s] at t=0.150000 ms: inst-104.00, avg-70.76
+Wave speed [m/s] at t=0.160000 ms: inst-0.72, avg-59.92
+Wave speed [m/s] at t=0.170000 ms: inst-0.00, avg-48.58
+Wave speed [m/s] at t=0.180000 ms: inst-0.00, avg-46.64
+Wave speed [m/s] at t=0.190000 ms: inst-0.00, avg-46.64
+Wave speed [m/s] at t=0.200000 ms: inst-0.00, avg-46.64
+Final time step size: 0.000000 ms
+Ignition time: 0.102723 ms
+Solver time per 1000 time steps: 0.011916 min
+Total time steps: 829234
+Average wave speed: 46.64 m/s
