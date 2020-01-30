@@ -12,13 +12,17 @@ MPI_Processes:6
 Length:0.003
 Nodes_x:300
 Model:Heat
-k_s:65.0
-k_model:Parallel
+Species:Air,s
+rho_IC:5109
 Cv_s:eta,601,998
-rho_IC:5109.0
-Darcy_mu:1e-05
+Cv_g:Air,Temp,1000
+Cp_g:Air,Temp
+k_s:65
+k_g:65
+k_model:Parallel
+Porosity:0.4
+Darcy_mu:1e-5
 Carmen_diam:0.0
-Kozeny_const:Porosity:0.4
 gas_constant:81.51
 diff_interpolation:Harmonic
 conv_interpolation:Linear
@@ -47,21 +51,17 @@ Time_Scheme:Explicit
 Convergence:0.0001
 Max_iterations:100
 Number_Data_Output:10
-Output_directory:Tests\4
 
 Boundary conditions:
-#bc_left_E:['F', 400000000.0, (0, -1)]
 bc_left_E:F,400000000.0,0,-1
-#bc_right_E:['C', (30.0, 300.0), (0, -1)]
 bc_right_E:C,30.0,300.0,0,-1
-#bc_left_rad:None
+
 bc_left_rad:None
-#bc_right_rad:None
 bc_right_rad:None
-#bc_left_P:['grad', 0.0, (0, -1)]
+
 bc_left_P:grad,0.0,0,-1
-#bc_right_P:['grad', 0.0, (0, -1)]
 bc_right_P:grad,0.0,0,-1
+
 #bc_left_mass:['grad', 0.0, (0, -1)]
 bc_left_mass:grad,0.0,0,-1
 #bc_right_mass:['grad', 0.0, (0, -1)]
@@ -69,8 +69,10 @@ bc_right_mass:grad,0.0,0,-1
 
 ##bc_left_E_new:['C', (30.0, 300.0), (0, -1)]
 
-Final time step size: 0.000143 ms
-Ignition time: 0.125974 ms
-Solver time per 1000 time steps: 0.007985 min
-Total time steps: 4206
-Average wave speed: 3.991776 m/s
+Final time step size: 0.000009 ms
+Ignition time: 0.256165 ms
+Solver time per 1000 time steps: 0.009276 min
+Total time steps: 67637
+Average wave speed: 6.017695 m/s
+
+## nt with Cp=f(eta), full enthalpy of combustion
